@@ -32,10 +32,8 @@ where
 /// A representation of money. Money has a value and a currency. The currency is PhantomData meaning that has no size and is only relevant in compiletime.
 ///
 /// ```
-/// use katjing::{Money, Currency};
-/// #[derive(Debug)]
-/// struct Eur();
-/// impl Currency for Eur {}
+/// use katjing::{Money, Currency, currencies};
+/// currencies!(Eur);
 ///
 /// // Money uses no more memory than it's internal representation
 /// assert_eq!(std::mem::size_of::<i32>(), std::mem::size_of::<Money<i32, Eur>>());
@@ -49,10 +47,8 @@ where
         C: Currency,
 {
         /// ```
-        /// use katjing::{Money, Currency};
-        /// #[derive(Debug)]
-        /// struct Eur();
-        /// impl Currency for Eur {}
+        /// use katjing::{Money, Currency, currencies};
+        /// currencies!(Eur);
         ///
         /// let eur_12 = Eur::create(12);
         /// assert_eq!(eur_12, eur_12);
@@ -62,17 +58,25 @@ where
         }
 }
 
+#[macro_export]
+macro_rules! currencies {
+    ($($cur:ident),+) => {
+        $(
+        #[derive(Debug)]
+        pub struct $cur();
+        impl Currency for $cur {})+
+    };
+}
+
 #[cfg(test)]
 pub mod test {
         use crate::{Currency, Money};
-        #[derive(Debug)]
-        struct Eur();
-        impl Currency for Eur {}
-
+        currencies!(Eur, Sek);
         #[test]
         fn create_money_from_currency() {
                 let eur_47 = Eur::create(47);
                 let eur_11 = Eur::create(11);
+
                 assert_eq!(eur_47, eur_47);
                 assert_ne!(eur_11, eur_47);
         }
