@@ -1,12 +1,25 @@
-//! Katjing is a library for representing money.
-//! The philosophy is to be able to lean on the type system for as much as possible with as little runtime overhead as possible. Zero cost abstractions if you will.
+//! Strong typed money.
 //!
-//! For example, Currency is important, it makes no sense to add 2 EUR to 5 USD. Then you would just have 2 EUR and 5 USD. You could add upp the total _value_ in SEK if you wanted to but that would require conversion, which leads to the second principle: No surprises.
+//! Katjing is a money library that attempts to check as much as possible at compile time. If possible with zero runtime overhead. If a compromize has to be made, chose the safer option. Katjing is mostly concerned with structural correctness and outsources the details to other types. That is why [Money] is generic. Lastly  Katjing tries not to do surprising things!
+//!
+//! For example:
+//!
+//! * [Money] represents currency as Phantom data allowing compiletime checking of not mixing currencies while not using more memory than reqired to store the actual amount.
+//! * [Money] is unsigned, can never go below zero, does not allow fractions and will fail on overflows.
+//! * [Money] is a representation of actual money in hand, when paying an amount the money is consumed and returns the remaning amount as change. This way, the same money cannot be used to pay more then one amount.
+//! * Katjing separates [Money] and amounts. [Money] is always rounded to be representable as real [Money] while an amount representing something like an interest can have a fractional part. This part will be represented as rounding if needed.
+//! * All conversions have to be explictly specified when needed.
+//!
+//! *Katjing is experimental and has not been reviewed for production use, use at your own risk*
+//!
+//! [Money]: struct.Money.html
+
+#[doc(html_playground_url = "https://play.rust-lang.org/")]
 
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-/// Value is just a collection of traits needed to properly represent a monetayr value. It implemented via a blanket implementation on all types that implement all the needed traits. You should never need to implement Value directly.
+/// Value is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all types that implement all the needed traits. You should never need to implement Value directly.
 pub trait Value
 where
         Self: Sized + Debug + PartialEq<Self>,
