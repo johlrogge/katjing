@@ -4,29 +4,22 @@
 //!
 //! For example:
 //!
-//! * [Money] represents currency as Phantom data allowing compiletime checking of not mixing currencies while not using more memory than reqired to store the actual amount.
+//! * [Money] represents currency as Phantom data allowing compiletime checking of not mixing currencies while not using more memory than reqired to store the actual [Amount].
 //! * [Money] is unsigned, can never go below zero, does not allow fractions and will fail on overflows.
-//! * [Money] is a representation of actual money in hand, when paying an amount the money is consumed and returns the remaning amount as change. This way, the same money cannot be used to pay more then one amount.
-//! * Katjing separates [Money] and amounts. [Money] is always rounded to be representable as real [Money] while an amount representing something like an interest can have a fractional part. This part will be represented as rounding if needed.
+//! * [Money] is a representation of actual money in hand, when paying an [Amount] the money is consumed and returns the remaning [Amount] as change. This way, the same money cannot be used to pay more then one [Amount].
+//! * Katjing separates [Money] and [Amount]s. [Money] is always rounded to be representable as real [Money] while an [Amount] representing something like an interest can have a fractional part. This part will be represented as rounding if needed.
 //! * All conversions have to be explictly specified when needed.
 //!
 //! *Katjing is experimental and has not been reviewed for production use, use at your own risk*
 //!
 //! [Money]: struct.Money.html
+//! [Amount]: struct.Amount.html
 
 #[doc(html_playground_url = "https://play.rust-lang.org/")]
 
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-/// Value is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all types that implement all the needed traits. You should never need to implement Value directly.
-pub trait Value
-where
-        Self: Sized + Debug + PartialEq<Self>,
-{
-}
-/// Blanket implementation of Value
-impl<T> Value for T where T: Sized + Debug + PartialEq<T> {}
 
 /// Represents currency. Mainly to keep money in different currencies as separate types that cannot be used together without conversion
 pub trait Currency
@@ -36,7 +29,7 @@ where
         /// creates an instance of money in this currency
         fn create<V>(value: V) -> Money<V, Self>
         where
-                V: Value,
+                V: MoneyValue,
         {
                 Money(value, PhantomData::<Self>)
         }
@@ -52,11 +45,11 @@ where
 /// assert_eq!(std::mem::size_of::<i32>(), std::mem::size_of::<Money<i32, Eur>>());
 /// ```
 #[derive(Debug)]
-pub struct Money<V: Value, C: Currency>(V, PhantomData<C>);
+pub struct Money<V: MoneyValue, C: Currency>(V, PhantomData<C>);
 
 impl<V, C> PartialEq<Money<V, C>> for Money<V, C>
 where
-        V: Value,
+        V: MoneyValue,
         C: Currency,
 {
         /// ```
@@ -69,6 +62,38 @@ where
         fn eq(&self, other: &Self) -> bool {
                 self.0 == other.0
         }
+}
+
+/// An amount represents something that can be paid. Like a Fee, Price, Shipping or Amortization
+pub struct Amount<M, V, C> (V, PhantomData<C>, PhantomData<M>)
+where
+    M:MoneyValue + Into<V>,
+    V:AmountValue<M>,
+    C:Currency ;
+
+
+/// MoneyValue is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all types that implement all the needed traits. You should never need to implement MoneyValue directly.
+pub trait MoneyValue
+where
+        Self: Sized + Debug + PartialEq<Self>,
+{
+}
+/// Blanket implementation of MoneyValue
+impl<T> MoneyValue for T where T: Sized + Debug + PartialEq<T> {}
+
+
+/// AmountValue is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all typs that implement all the needed traits. You should never need to implement MoneyValue directly.
+pub trait AmountValue<MV>
+where
+    MV:MoneyValue + Into<Self>,
+    Self: MoneyValue + Into<MV> {
+}
+
+/// Blanket implementation of AmountValue
+impl<T, MV> AmountValue<MV> for T where
+    T: MoneyValue + Into<MV>,
+    MV: MoneyValue + Into<T>,
+{
 }
 
 #[macro_export]
