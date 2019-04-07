@@ -47,7 +47,7 @@ where
 /// currencies!(Eur);
 ///
 /// // Money uses no more memory than it's internal representation
-/// assert_eq!(std::mem::size_of::<i32>(), std::mem::size_of::<Money<i32, Eur>>());
+/// assert_eq!(std::mem::size_of::<u32>(), std::mem::size_of::<Money<u32, Eur>>());
 /// ```
 #[derive(Debug)]
 pub struct Money<V: MoneyValue, C: Currency>(V, PhantomData<C>);
@@ -61,7 +61,7 @@ where
         /// use katjing::{Money, Currency, currencies};
         /// currencies!(Eur);
         ///
-        /// let eur_12 = Eur::create_money(12);
+        /// let eur_12 = Eur::create_money(12u32);
         /// assert_eq!(eur_12, eur_12);
         ///```
         fn eq(&self, other: &Self) -> bool {
@@ -78,15 +78,15 @@ where
 
 impl<V, C> PartialEq<Amount<V, C>> for Amount<V, C>
 where
-        V: MoneyValue,
+        V: AmountValue,
         C: Currency,
 {
         /// ```
         /// use katjing::{Amount, Currency, currencies};
         /// currencies!(Eur);
         ///
-        /// let eur_12 = Eur::create_amount(12);
-        /// let eur_13 = Eur::create_amount(13);
+        /// let eur_12 = Eur::create_amount(12u32);
+        /// let eur_13 = Eur::create_amount(13u32);
         /// assert_eq!(eur_12, eur_12);
         /// assert_ne!(eur_13, eur_12);
         /// ```
@@ -95,15 +95,77 @@ where
         }
 }
 
+pub trait Take<MV, C>
+where
+        MV: MoneyValue,
+        Self: Sized,
+        C: Currency,
+{
+        fn take<AV>(self, amount: &Amount<AV, C>) -> (Self, Self)
+        where
+                AV: AmountValue + Into<MV>;
+}
+
+impl<MV, C> Take<MV, C> for Money<MV, C>
+where
+        C: Currency,
+        MV: MoneyValue,
+{
+        fn take<AV>(self, amount: &Amount<AV, C>) -> (Self, Self)
+        where
+                AV: AmountValue + Into<MV>,
+    {
+            let remaining_money = self.0.clone();
+            if let Some(remaining_money) = remaining_money.checked_sub(amount.0.clone().into()) {
+                
+                let money_taken = amount.0.clone().into();
+                (
+                    C::create_money(remaining_money),
+                    C::create_money(money_taken)
+                )
+            }
+            else {
+                let remaining_money = self.0.clone(); 
+                (
+                    C::create_money(amount.0.clone().into().checked_sub(amount.0.clone().into()).expect("unexpected overflow")),
+                    C::create_money(remaining_money)
+                )
+            }
+        }
+}
+
+/// Implement for payable things such as amounts
+pub trait Pay<C>
+where
+        C: Currency,
+{
+        /// consumes `with_money` and returns remaining money and left to pay after with_money has been deducted.
+        fn pay<MV>(self, with_money: Money<MV, C>) -> (Money<MV, C>, Self)
+        where
+                MV: MoneyValue;
+}
+
+impl<AV, C> Pay<C> for Amount<AV, C>
+where
+        AV: AmountValue,
+        C: Currency,
+{
+        fn pay<MV>(self, with_money: Money<MV, C>) -> (Money<MV, C>, Self)
+        where
+                MV: MoneyValue,
+        {
+                (with_money, self)
+        }
+}
 
 /// MoneyValue is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all types that implement all the needed traits. You should never need to implement MoneyValue directly.
 pub trait MoneyValue
 where
-        Self: Sized + Debug + PartialEq<Self>,
+        Self: Clone + Sized + Debug + Eq + Ord + CheckedSub<Output = Self>,
 {
 }
 /// Blanket implementation of MoneyValue
-impl<T> MoneyValue for T where T: Sized + Debug + PartialEq<T> {}
+impl<T> MoneyValue for T where T: Clone + Sized + Debug + Eq + Ord + CheckedSub<Output = Self> {}
 
 /// AmountValue is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all typs that implement all the needed traits. You should never need to implement MoneyValue directly.
 pub trait AmountValue
@@ -112,8 +174,27 @@ where
 {
 }
 
+pub trait CheckedSub<Rhs = Self> {
+    type Output;
+    fn checked_sub(self, rhs: Rhs) -> Option<Self::Output>;
+}
+
+macro_rules! checked_sub_impl {
+    ($($t: ty)*) => ($(
+        impl crate::CheckedSub for $t {
+            type Output = $t;
+            #[inline]
+            fn checked_sub(self, other: $t) -> Option<$t> { self.checked_sub(other) }
+        }
+        )*)
+}
+
+
+checked_sub_impl!(u8 u16 u32 u64 u128);
+
+
 /// Blanket implementation of AmountValue
-impl<T> AmountValue for T where T: MoneyValue {}
+impl<T> AmountValue for T where T: MoneyValue + Clone {}
 
 #[macro_export]
 macro_rules! currencies {
@@ -134,8 +215,8 @@ pub mod test {
                 use crate::{Currency, Money};
                 #[test]
                 fn create_from_currency() {
-                        let eur_47 = Eur::create_money(47);
-                        let eur_11 = Eur::create_money(11);
+                        let eur_47 = Eur::create_money(47u32);
+                        let eur_11 = Eur::create_money(11u32);
 
                         assert_eq!(eur_47, eur_47);
                         assert_ne!(eur_11, eur_47);
@@ -143,8 +224,8 @@ pub mod test {
 
                 #[test]
                 fn is_not_larger_than_value() {
-                        assert!(std::mem::size_of::<Money<i32, Eur>>()
-                                == std::mem::size_of::<i32>());
+                        assert!(std::mem::size_of::<Money<u32, Eur>>()
+                                == std::mem::size_of::<u32>());
                 }
         }
 
@@ -154,8 +235,8 @@ pub mod test {
 
                 #[test]
                 fn create_from_currency() {
-                        let eur_47 = Eur::create_amount(47);
-                        let eur_11 = Eur::create_amount(11);
+                        let eur_47 = Eur::create_amount(47u32);
+                        let eur_11 = Eur::create_amount(11u32);
 
                         assert_eq!(eur_47, eur_47);
                         assert_ne!(eur_47, eur_11);
@@ -163,8 +244,42 @@ pub mod test {
 
                 #[test]
                 fn is_not_larger_than_value() {
-                        assert!(std::mem::size_of::<Amount<i32, Eur>>()
-                                == std::mem::size_of::<i32>());
+                        assert_eq!(
+                                std::mem::size_of::<Amount<u32, Eur>>(),
+                                std::mem::size_of::<u32>()
+                        );
+                }
+        }
+
+        mod take {
+                use super::Eur;
+                use crate::{Currency, Take};
+
+                #[test]
+                fn take_full_amount_from_money() {
+                        let money = Eur::create_money(4711u32);
+                        let amount = Eur::create_amount(4711u32);
+                        let (remaining_money, money_taken) = money.take(&amount);
+                        assert_eq!(remaining_money, Eur::create_money(0u32));
+                        assert_eq!(money_taken, Eur::create_money(4711u32));
+                }
+
+                #[test]
+                fn take_lower_amount_from_money() {
+                        let money = Eur::create_money(20u32);
+                        let amount = Eur::create_amount(15u32);
+                        let (remaining_money, money_taken) = money.take(&amount);
+                        assert_eq!(remaining_money, Eur::create_money(5u32));
+                        assert_eq!(money_taken, Eur::create_money(15u32));
+                }
+
+                #[test]
+                fn take_higher_amount_from_money() {
+                        let money = Eur::create_money(15u32);
+                        let amount = Eur::create_amount(20u32);
+                        let (remaining_money, money_taken) = money.take(&amount);
+                        assert_eq!(remaining_money, Eur::create_money(0u32));
+                        assert_eq!(money_taken, Eur::create_money(15u32));
                 }
         }
 }
