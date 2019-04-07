@@ -115,22 +115,27 @@ where
         where
                 AV: AmountValue + Into<MV>,
     {
-            let remaining_money = self.0.clone();
-            if let Some(remaining_money) = remaining_money.checked_sub(amount.0.clone().into()) {
-                
-                let money_taken = amount.0.clone().into();
-                (
-                    C::create_money(remaining_money),
-                    C::create_money(money_taken)
-                )
-            }
-            else {
-                let remaining_money = self.0.clone(); 
-                (
-                    C::create_money(amount.0.clone().into().checked_sub(amount.0.clone().into()).expect("unexpected overflow")),
-                    C::create_money(remaining_money)
-                )
-            }
+            use std::cmp::Ordering::*;
+                let money_needed = amount.0.clone().into();
+                let remaining_money = self.0;
+                match money_needed.cmp(&remaining_money) {
+                    Less => (
+                        C::create_money(
+                            remaining_money
+                                .checked_sub(money_needed.clone())
+                                .expect("unexpected overflow"),
+                        ),
+                        C::create_money(money_needed),
+                    ),
+                    Equal => (
+                        C::create_money(MV::zero()),
+                        C::create_money(remaining_money)
+                    ),
+                    Greater => (
+                        C::create_money(MV::zero()),
+                        C::create_money(remaining_money) 
+                    )
+                }
         }
 }
 
@@ -161,11 +166,11 @@ where
 /// MoneyValue is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all types that implement all the needed traits. You should never need to implement MoneyValue directly.
 pub trait MoneyValue
 where
-        Self: Clone + Sized + Debug + Eq + Ord + CheckedSub<Output = Self>,
+        Self: Clone + Sized + Debug + Zero + Eq + Ord + CheckedSub<Output = Self>,
 {
 }
 /// Blanket implementation of MoneyValue
-impl<T> MoneyValue for T where T: Clone + Sized + Debug + Eq + Ord + CheckedSub<Output = Self> {}
+impl<T> MoneyValue for T where T: Clone + Sized + Debug + Zero + Eq + Ord + CheckedSub<Output = Self> {}
 
 /// AmountValue is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all typs that implement all the needed traits. You should never need to implement MoneyValue directly.
 pub trait AmountValue
@@ -174,9 +179,25 @@ where
 {
 }
 
+pub trait Zero {
+        fn zero() -> Self;
+}
+
+
+macro_rules! zero_impl {
+    ($($t: ty)*) => ($(
+        impl crate::Zero for $t {
+            #[inline]
+            fn zero() -> $t { 0 }
+        }
+        )*)
+}
+
+zero_impl![u8 u16 u32 u64 u128];
+
 pub trait CheckedSub<Rhs = Self> {
-    type Output;
-    fn checked_sub(self, rhs: Rhs) -> Option<Self::Output>;
+        type Output;
+        fn checked_sub(self, rhs: Rhs) -> Option<Self::Output>;
 }
 
 macro_rules! checked_sub_impl {
@@ -189,9 +210,7 @@ macro_rules! checked_sub_impl {
         )*)
 }
 
-
 checked_sub_impl!(u8 u16 u32 u64 u128);
-
 
 /// Blanket implementation of AmountValue
 impl<T> AmountValue for T where T: MoneyValue + Clone {}
