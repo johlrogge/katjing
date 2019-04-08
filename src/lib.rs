@@ -101,9 +101,9 @@ where
         Self: Sized,
         C: Currency,
 {
-        fn take<AV>(self, amount: &Amount<AV, C>) -> (Self, Self)
+        fn take<AV>(self, amount: &Amount<AV, C>) -> (Self, Amount<AV,C>)
         where
-                AV: AmountValue + Into<MV>;
+                AV: AmountValue + Into<MV> + From<MV>;
 }
 
 impl<MV, C> Take<MV, C> for Money<MV, C>
@@ -111,9 +111,10 @@ where
         C: Currency,
         MV: MoneyValue,
 {
-        fn take<AV>(self, amount: &Amount<AV, C>) -> (Self, Self)
+        fn take<AV>(self, amount: &Amount<AV, C>) -> (Self, Amount<AV, C>)
         where
-                AV: AmountValue + Into<MV>,
+        AV: AmountValue + Into<MV> + From<MV>,
+    
         {
                 use std::cmp::Ordering::*;
                 let money_needed = amount.0.clone().into();
@@ -125,15 +126,15 @@ where
                                                 .checked_sub(money_needed.clone())
                                                 .expect("unexpected overflow"),
                                 ),
-                                C::create_money(money_needed),
+                                C::create_amount(money_needed.into()),
                         ),
                         Equal => (
                                 C::create_money(MV::zero()),
-                                C::create_money(remaining_money),
+                                C::create_amount(remaining_money.into()),
                         ),
                         Greater => (
                                 C::create_money(MV::zero()),
-                                C::create_money(remaining_money),
+                                C::create_amount(remaining_money.into()),
                         ),
                 }
         }
@@ -278,27 +279,27 @@ pub mod test {
                 fn take_full_amount_from_money() {
                         let money = Eur::create_money(4711u32);
                         let amount = Eur::create_amount(4711u32);
-                        let (remaining_money, money_taken) = money.take(&amount);
+                        let (remaining_money, amount_taken) = money.take(&amount);
                         assert_eq!(remaining_money, Eur::create_money(0u32));
-                        assert_eq!(money_taken, Eur::create_money(4711u32));
+                        assert_eq!(amount_taken, Eur::create_amount(4711u32));
                 }
 
                 #[test]
                 fn take_lower_amount_from_money() {
                         let money = Eur::create_money(20u32);
                         let amount = Eur::create_amount(15u32);
-                        let (remaining_money, money_taken) = money.take(&amount);
+                        let (remaining_money, amount_taken) = money.take(&amount);
                         assert_eq!(remaining_money, Eur::create_money(5u32));
-                        assert_eq!(money_taken, Eur::create_money(15u32));
+                        assert_eq!(amount_taken, Eur::create_amount(15u32));
                 }
 
                 #[test]
                 fn take_higher_amount_from_money() {
                         let money = Eur::create_money(15u32);
                         let amount = Eur::create_amount(20u32);
-                        let (remaining_money, money_taken) = money.take(&amount);
+                        let (remaining_money, amount_taken) = money.take(&amount);
                         assert_eq!(remaining_money, Eur::create_money(0u32));
-                        assert_eq!(money_taken, Eur::create_money(15u32));
+                        assert_eq!(amount_taken, Eur::create_amount(15u32));
                 }
         }
 }
