@@ -69,8 +69,8 @@ where
         }
 }
 
-/// An amount represents something that can be paid. Like a Fee, Price, Shipping or Amortization
-#[derive(Debug)]
+/// An abstract amount of money used for calculations
+#[derive(Debug, Eq, Ord, PartialOrd)]
 pub struct Amount<AV, C>(AV, PhantomData<C>)
 where
         AV: AmountValue,
@@ -93,6 +93,89 @@ where
         fn eq(&self, other: &Self) -> bool {
                 self.0 == other.0
         }
+}
+
+pub trait WrappedAmount<AV, C>
+where
+        AV: AmountValue,
+        C: Currency,
+{
+        fn amount<'a>(&'a self) -> &'a Amount<AV, C>;
+}
+
+pub trait Cost<AV, C>
+where
+        Self: WrappedAmount<AV, C>,
+        AV: AmountValue,
+        C: Currency,
+{
+}
+
+pub trait CostFactory<CO, AV, C>
+where
+        CO: Cost<AV, C>,
+        AV: AmountValue,
+        C: Currency,
+{
+        fn create_cost(amount: AV) -> CO;
+}
+
+#[macro_export]
+macro_rules! cost {
+        ($c:ident) => {
+                #[derive(Debug, Eq, PartialOrd, Ord)]
+                struct $c<AV, C>(crate::Amount<AV, C>)
+                where
+                        AV: crate::AmountValue,
+                        C: crate::Currency;
+
+                impl<AV, C> PartialEq for $c<AV, C>
+                where
+                        AV: crate::AmountValue,
+                        C: crate::Currency,
+                {
+                        fn eq(&self, other: &$c<AV, C>) -> bool {
+                                self.0 == other.0
+                        }
+                }
+
+                impl<AV, C> crate::WrappedAmount<AV, C> for $c<AV, C>
+                where
+                        AV: crate::AmountValue,
+                        C: crate::Currency,
+                {
+                        fn amount(&self) -> &crate::Amount<AV, C> {
+                                &self.0
+                        }
+                }
+
+                impl<AV, C> Cost<AV, C> for $c<AV, C>
+                where
+                        AV: crate::AmountValue,
+                        C: crate::Currency,
+                {
+                }
+
+                impl<AV, C> Into<$c<AV, C>> for crate::Amount<AV, C>
+                where
+                        AV: crate::AmountValue,
+                        C: crate::Currency,
+                {
+                        fn into(self) -> $c<AV, C> {
+                                $c(self)
+                        }
+                }
+
+                impl<AV, C> crate::CostFactory<$c<AV, C>, AV, C> for C
+                where
+                        AV: crate::AmountValue,
+                        C: crate::Currency,
+                {
+                        fn create_cost(amount: AV) -> $c<AV, C> {
+                                $c(C::create_amount(amount))
+                        }
+                }
+        };
 }
 
 pub struct Taken<MV, AV, C>
@@ -150,26 +233,35 @@ where
 }
 
 /// Implement for payable things such as amounts
-pub trait Pay<C>
+pub trait PayWith<MV, AV, C>
 where
+        MV: MoneyValue + Into<AV>,
+        AV: AmountValue + Into<MV>,
         C: Currency,
 {
         /// consumes `with_money` and returns remaining money and left to pay after with_money has been deducted.
-        fn pay<MV>(self, with_money: Money<MV, C>) -> (Money<MV, C>, Self)
-        where
-                MV: MoneyValue;
+        fn pay_with(self, with_money: Money<MV, C>) -> (Money<MV, C>, Self);
 }
 
-impl<AV, C> Pay<C> for Amount<AV, C>
+impl<CO, MV, AV, C> PayWith<MV, AV, C> for CO
 where
-        AV: AmountValue,
-        C: Currency,
+        Self: Cost<AV, C>,
+        AV: AmountValue + Into<MV> + From<MV>,
+        MV: MoneyValue + Into<AV>,
+        C: Currency + CostFactory<CO, AV, C>,
 {
-        fn pay<MV>(self, with_money: Money<MV, C>) -> (Money<MV, C>, Self)
-        where
-                MV: MoneyValue,
-        {
-                (with_money, self)
+        fn pay_with(self, with_money: Money<MV, C>) -> (Money<MV, C>, Self) {
+                let Taken { remaining, taken } = with_money.take(self.amount());
+                (
+                        remaining,
+                        C::create_cost(
+                                self.amount()
+                                        .0
+                                        .clone()
+                                        .checked_sub(taken.0)
+                                        .expect("overflow"),
+                        ),
+                )
         }
 }
 
@@ -309,6 +401,21 @@ pub mod test {
                         let Taken { remaining, taken } = money.take(&amount);
                         assert_eq!(remaining, Eur::create_money(0u32));
                         assert_eq!(taken, Eur::create_amount(15u32));
+                }
+        }
+
+        mod pay_with {
+                use super::Eur;
+                use crate::{Cost, CostFactory, Currency, PayWith};
+
+                cost![Price];
+                #[test]
+                fn pay_full_cost() {
+                        let money = Eur::create_money(4711u16);
+                        let cost = Eur::create_cost(4711u16);
+                        let (money, cost) = cost.pay_with(money);
+                        assert_eq!(money, Eur::create_money(0u16));
+                        assert_eq!(cost, Eur::create_cost(0u16));
                 }
         }
 }
