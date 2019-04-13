@@ -192,7 +192,6 @@ where
 pub trait Take<MV, C>
 where
         MV: MoneyValue,
-        Self: Sized,
         C: Currency,
 {
         fn take<AV>(self, amount: &Amount<AV, C>) -> Taken<MV, AV, C>
@@ -260,9 +259,8 @@ pub trait PayWith<MV, AV, C>
 where
         Self: Sized,
         MV: MoneyValue,
-        AV: AmountValue + Into<MV> + TryFrom<MV>,
+        AV: AmountValue,
         C: Currency,
-        <AV as std::convert::TryFrom<MV>>::Error: Debug,
 {
         /// consumes `with_money` and returns remaining money and left to pay after with_money has been deducted.
         fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self>;
