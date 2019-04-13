@@ -4,7 +4,7 @@
 //!
 //! For example:
 //!
-//! * [Money] represents currency as Phantom data allowing compiletime checking of not mixing currencies while not using more memory than reqired to store the actual [Amount].
+//! * [Money] represents currency as phantom data allowing compiletime checking of not mixing currencies while not using more memory than reqired to store the actual [Amount].
 //! * [Money] is unsigned, can never go below zero, does not allow fractions and will fail on overflows.
 //! * [Money] is a representation of actual money in hand, when paying an [Amount] the money is consumed and returns the remaning [Amount] as change. This way, the same money cannot be used to pay more then one [Amount].
 //! * Katjing separates [Money] and [Amount]s. [Money] is always rounded to be representable as real [Money] while an [Amount] representing something like an interest can have a fractional part. This part will be represented as rounding if needed.
