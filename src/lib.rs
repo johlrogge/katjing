@@ -232,15 +232,25 @@ where
         }
 }
 
+pub struct Change<M, A>
+where
+        M: Sized,
+        A: Sized,
+{
+        pub money_back: M,
+        pub left_to_pay: A,
+}
+
 /// Implement for payable things such as amounts
 pub trait PayWith<MV, AV, C>
 where
+        Self: Sized,
         MV: MoneyValue + Into<AV>,
         AV: AmountValue + Into<MV>,
         C: Currency,
 {
         /// consumes `with_money` and returns remaining money and left to pay after with_money has been deducted.
-        fn pay_with(self, with_money: Money<MV, C>) -> (Money<MV, C>, Self);
+        fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self>;
 }
 
 impl<CO, MV, AV, C> PayWith<MV, AV, C> for CO
@@ -250,18 +260,20 @@ where
         MV: MoneyValue + Into<AV>,
         C: Currency + CostFactory<CO, AV, C>,
 {
-        fn pay_with(self, with_money: Money<MV, C>) -> (Money<MV, C>, Self) {
+        fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self> {
                 let Taken { remaining, taken } = with_money.take(self.amount());
-                (
-                        remaining,
-                        C::create_cost(
-                                self.amount()
-                                        .0
-                                        .clone()
-                                        .checked_sub(taken.0)
-                                        .expect("overflow"),
-                        ),
-                )
+                let left_to_pay = C::create_cost(
+                        self.amount()
+                                .0
+                                .clone()
+                                .checked_sub(taken.0)
+                                .expect("overflow"),
+                );
+
+                Change {
+                        money_back: remaining,
+                        left_to_pay,
+                }
         }
 }
 
@@ -406,16 +418,19 @@ pub mod test {
 
         mod pay_with {
                 use super::Eur;
-                use crate::{Cost, CostFactory, Currency, PayWith};
+                use crate::{Change, Cost, CostFactory, Currency, PayWith};
 
                 cost![Price];
                 #[test]
                 fn pay_full_cost() {
                         let money = Eur::create_money(4711u16);
                         let cost = Eur::create_cost(4711u16);
-                        let (money, cost) = cost.pay_with(money);
-                        assert_eq!(money, Eur::create_money(0u16));
-                        assert_eq!(cost, Eur::create_cost(0u16));
+                        let Change {
+                                money_back,
+                                left_to_pay,
+                        } = cost.pay_with(money);
+                        assert_eq!(money_back, Eur::create_money(0u16));
+                        assert_eq!(left_to_pay, Eur::create_cost(0u16));
                 }
         }
 }
