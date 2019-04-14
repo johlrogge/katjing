@@ -207,8 +207,8 @@ where
         <AV as std::convert::TryInto<MV>>::Error: Debug,
 {
         fn take(self, amount: &Amount<AV, C>) -> Taken<MV, AV, C> {
-                use std::cmp::Ordering::*;
-                let money_needed = amount.0.clone().try_into().expect("implement as take max");
+            use std::cmp::Ordering::*;
+                let money_needed = amount.0.clone().try_into().unwrap_or(MV::max_value());
                 let remaining_money = self.0;
                 match money_needed.cmp(&remaining_money) {
                         Less => Taken {
@@ -266,10 +266,11 @@ where
 impl<CO, MV, AV, C> PayWith<MV, AV, C> for CO
 where
         Self: Cost<AV, C>,
-        AV: AmountValue + Into<MV> + TryFrom<MV>,
+        AV: AmountValue + TryInto<MV> + TryFrom<MV>,
         MV: MoneyValue + TryInto<AV>,
         C: Currency + CostFactory<CO, AV, C>,
         <AV as std::convert::TryFrom<MV>>::Error: Debug,
+        <AV as std::convert::TryInto<MV>>::Error: Debug,
 {
         fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self> {
                 let Taken { remaining, taken } = with_money.take(self.amount());
@@ -291,11 +292,11 @@ where
 /// MoneyValue is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all types that implement all the needed traits. You should never need to implement MoneyValue directly.
 pub trait MoneyValue
 where
-        Self: Clone + Sized + Debug + Zero + Eq + Ord + CheckedSub<Output = Self>,
+        Self: Clone + Sized + Debug + Zero + MaxValue + Eq + Ord + CheckedSub<Output = Self>,
 {
 }
 /// Blanket implementation of MoneyValue
-impl<T> MoneyValue for T where T: Clone + Sized + Debug + Zero + Eq + Ord + CheckedSub<Output = Self>
+impl<T> MoneyValue for T where T: Clone + Sized + Debug + Zero + MaxValue + Eq + Ord + CheckedSub<Output = Self>
 {}
 
 /// AmountValue is just a collection of traits needed to properly represent a monetary value. It is implemented via a blanket implementation on all typs that implement all the needed traits. You should never need to implement MoneyValue directly.
@@ -319,6 +320,22 @@ macro_rules! zero_impl {
 }
 
 zero_impl![u8 u16 u32 u64 u128 usize];
+
+pub trait MaxValue {
+    fn max_value() -> Self;
+}
+macro_rules! max_value_impl {
+    ($($t: ty)*) => ($(
+        impl crate::MaxValue for $t {
+            #[inline]
+            fn max_value() -> $t { return Self::max_value() }
+        }
+    )*)
+}
+
+max_value_impl![u8 u16 u32 u64 u128 usize];
+
+                     
 
 pub trait CheckedSub<Rhs = Self> {
         type Output;
@@ -458,6 +475,15 @@ pub mod test {
                                 assert_eq!(remaining, Eur::create_money(0u64));
                                 assert_eq!(taken, Eur::create_amount(15u32));
                         }
+
+                        #[test]
+                        fn money_has_larger_value_than_amount_can_represent() {
+                                let money = Eur::create_money(512u16);
+                                let amount = Eur::create_amount(128u8);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(512u16 - 128));
+                                assert_eq!(taken, Eur::create_amount(128u8));
+                        }
                 }
                 mod money_is_a_smaller_type_than_amount {
                         use super::super::Eur;
@@ -488,6 +514,15 @@ pub mod test {
                                 let Taken { remaining, taken } = money.take(&amount);
                                 assert_eq!(remaining, Eur::create_money(0u64));
                                 assert_eq!(taken, Eur::create_amount(15u32));
+                        }
+
+                        #[test]
+                        fn amount_has_larger_value_than_money_can_represent() {
+                                let money = Eur::create_money(255u8);
+                                let amount = Eur::create_amount(512u16);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(0u8));
+                                assert_eq!(taken, Eur::create_amount(255u16));
                         }
                 }
         }
@@ -535,6 +570,47 @@ pub mod test {
                                 } = cost.pay_with(money);
                                 assert_eq!(money_back, Eur::create_money(12u8));
                                 assert_eq!(left_to_pay, Eur::create_cost(0u8));
+                        }
+                }
+                mod money_is_a_smaller_type {
+                        use super::*;
+                        use crate::{Change, CostFactory, Currency, PayWith};
+                        #[test]
+                        fn pay_full_cost() {
+                            let money = Eur::create_money(128u8);
+                                let cost = Eur::create_cost(128u16);
+                                let Change {
+                                        money_back,
+                                        left_to_pay,
+                                } = cost.pay_with(money);
+
+                                assert_eq!(money_back, Eur::create_money(0u8));
+                                assert_eq!(left_to_pay, Eur::create_cost(0u16));
+                        }
+
+                        #[test]
+                        fn pay_partial_cost() {
+                                let money = Eur::create_money(128u8);
+                                let cost = Eur::create_cost(255u16);
+                                let Change {
+                                        money_back,
+                                        left_to_pay,
+                                } = cost.pay_with(money);
+                                assert_eq!(money_back, Eur::create_money(0u8));
+                                assert_eq!(left_to_pay, Eur::create_cost(127u16));
+                        }
+
+                        #[test]
+                        fn pay_more_than_cost() {
+                                let money = Eur::create_money(255u8);
+                                let cost = Eur::create_cost(128u16);
+                                let Change {
+                                        money_back,
+                                        left_to_pay,
+                                } = cost.pay_with(money);
+
+                                assert_eq!(money_back, Eur::create_money(255u8 - 128));
+                                    assert_eq!(left_to_pay, Eur::create_cost(0u16));
                         }
                 }
                 mod money_is_a_larger_type {
