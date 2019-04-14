@@ -189,29 +189,26 @@ where
         pub taken: Amount<AV, C>,
 }
 
-pub trait Take<MV, C>
+pub trait Take<MV, AV, C>
 where
         MV: MoneyValue,
+        AV: AmountValue,
         C: Currency,
 {
-        fn take<AV>(self, amount: &Amount<AV, C>) -> Taken<MV, AV, C>
-        where
-                AV: AmountValue + Into<MV> + TryFrom<MV>,
-                <AV as std::convert::TryFrom<MV>>::Error: Debug;
+        fn take(self, amount: &Amount<AV, C>) -> Taken<MV, AV, C>;
 }
 
-impl<MV, C> Take<MV, C> for Money<MV, C>
+impl<MV, AV, C> Take<MV, AV, C> for Money<MV, C>
 where
         C: Currency,
+        AV: AmountValue + TryInto<MV> + TryFrom<MV>,
         MV: MoneyValue + Debug,
+        <AV as std::convert::TryFrom<MV>>::Error: Debug,
+        <AV as std::convert::TryInto<MV>>::Error: Debug,
 {
-        fn take<AV>(self, amount: &Amount<AV, C>) -> Taken<MV, AV, C>
-        where
-                AV: AmountValue + Into<MV> + TryFrom<MV>,
-                <AV as std::convert::TryFrom<MV>>::Error: Debug,
-        {
+        fn take(self, amount: &Amount<AV, C>) -> Taken<MV, AV, C> {
                 use std::cmp::Ordering::*;
-                let money_needed = amount.0.clone().into();
+                let money_needed = amount.0.clone().try_into().expect("implement as take max");
                 let remaining_money = self.0;
                 match money_needed.cmp(&remaining_money) {
                         Less => Taken {
@@ -399,34 +396,99 @@ pub mod test {
         }
 
         mod take {
-                use super::Eur;
-                use crate::{Currency, Take, Taken};
 
-                #[test]
-                fn take_full_amount_from_money() {
-                        let money = Eur::create_money(4711u32);
-                        let amount = Eur::create_amount(4711u32);
-                        let Taken { remaining, taken } = money.take(&amount);
-                        assert_eq!(remaining, Eur::create_money(0u32));
-                        assert_eq!(taken, Eur::create_amount(4711u32));
+                mod money_and_amount_are_same_type {
+                        use super::super::Eur;
+                        use crate::{Currency, Take, Taken};
+
+                        #[test]
+                        fn take_full_amount_from_money() {
+                                let money = Eur::create_money(4711u32);
+                                let amount = Eur::create_amount(4711u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(0u32));
+                                assert_eq!(taken, Eur::create_amount(4711u32));
+                        }
+
+                        #[test]
+                        fn take_lower_amount_from_money() {
+                                let money = Eur::create_money(20u32);
+                                let amount = Eur::create_amount(15u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(5u32));
+                                assert_eq!(taken, Eur::create_amount(15u32));
+                        }
+
+                        #[test]
+                        fn take_higher_amount_from_money() {
+                                let money = Eur::create_money(15u32);
+                                let amount = Eur::create_amount(20u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(0u32));
+                                assert_eq!(taken, Eur::create_amount(15u32));
+                        }
                 }
+                mod money_is_a_larger_type_than_amount {
+                        use super::super::Eur;
+                        use crate::{Currency, Take, Taken};
 
-                #[test]
-                fn take_lower_amount_from_money() {
-                        let money = Eur::create_money(20u32);
-                        let amount = Eur::create_amount(15u32);
-                        let Taken { remaining, taken } = money.take(&amount);
-                        assert_eq!(remaining, Eur::create_money(5u32));
-                        assert_eq!(taken, Eur::create_amount(15u32));
+                        #[test]
+                        fn take_full_amount_from_money() {
+                                let money = Eur::create_money(4711u64);
+                                let amount = Eur::create_amount(4711u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(0u64));
+                                assert_eq!(taken, Eur::create_amount(4711u32));
+                        }
+
+                        #[test]
+                        fn take_lower_amount_from_money() {
+                                let money = Eur::create_money(20u64);
+                                let amount = Eur::create_amount(15u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(5u64));
+                                assert_eq!(taken, Eur::create_amount(15u32));
+                        }
+
+                        #[test]
+                        fn take_higher_amount_from_money() {
+                                let money = Eur::create_money(15u64);
+                                let amount = Eur::create_amount(20u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(0u64));
+                                assert_eq!(taken, Eur::create_amount(15u32));
+                        }
                 }
+                mod money_is_a_smaller_type_than_amount {
+                        use super::super::Eur;
+                        use crate::{Currency, Take, Taken};
 
-                #[test]
-                fn take_higher_amount_from_money() {
-                        let money = Eur::create_money(15u32);
-                        let amount = Eur::create_amount(20u32);
-                        let Taken { remaining, taken } = money.take(&amount);
-                        assert_eq!(remaining, Eur::create_money(0u32));
-                        assert_eq!(taken, Eur::create_amount(15u32));
+                        #[test]
+                        fn take_full_amount_from_money() {
+                                let money = Eur::create_money(4711u64);
+                                let amount = Eur::create_amount(4711u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(0u64));
+                                assert_eq!(taken, Eur::create_amount(4711u32));
+                        }
+
+                        #[test]
+                        fn take_lower_amount_from_money() {
+                                let money = Eur::create_money(20u64);
+                                let amount = Eur::create_amount(15u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(5u64));
+                                assert_eq!(taken, Eur::create_amount(15u32));
+                        }
+
+                        #[test]
+                        fn take_higher_amount_from_money() {
+                                let money = Eur::create_money(15u64);
+                                let amount = Eur::create_amount(20u32);
+                                let Taken { remaining, taken } = money.take(&amount);
+                                assert_eq!(remaining, Eur::create_money(0u64));
+                                assert_eq!(taken, Eur::create_amount(15u32));
+                        }
                 }
         }
 
@@ -435,6 +497,7 @@ pub mod test {
                 use crate::Cost;
 
                 cost![Price];
+
                 mod money_is_same_type {
                         use super::*;
                         use crate::{Change, CostFactory, Currency, PayWith};
