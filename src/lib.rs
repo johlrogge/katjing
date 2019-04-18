@@ -1,6 +1,8 @@
 //! Strong typed money.
 //!
-//! Katjing is a money library that attempts to check as much as possible at compile time. If possible with zero runtime overhead. If a compromize has to be made, chose the safer option. Katjing is mostly concerned with structural correctness and outsources the details to other types. That is why [Money] is generic. Lastly  Katjing tries not to do surprising things!
+//! Katjing is a money library that attempts to check as much as possible at compile time. If possible with zero runtime overhead.
+//! If a compromize has to be made, chose the safer option. Katjing is mostly concerned with structural correctness and outsources
+//! the details to other types. That is why [Money] is generic. Lastly  Katjing tries not to do surprising things!
 //!
 //! For example:
 //!
@@ -52,7 +54,8 @@
 //! }
 //! ```
 //!
-//! As you may notice you can choose *storage type* for your costs and your money. You may not expect shipping in € to be a very large amount  so you may choose a small type to represent shipping while you would choose something bigger to represent national debt.
+//! As you may notice you can choose *storage type* for your costs and your money. You may not expect shipping in € to be a very large amount
+//! so you may choose a small type to represent shipping while you would choose something bigger to represent national debt.
 //! You may also notice that all values are unsigned. This is also by design. Negative money does not exist, that is only for calculation. Katjing uses types instead of signs as we will see.
 //! Lastly, costs and money are created from a currency. **You cannot mix currencies**
 //! From now on we will assume the above costs and currencies are defined.
