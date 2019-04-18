@@ -273,15 +273,6 @@ where
     fn new(amount: AV) -> Self;
 }
 
-pub trait CostFactory<CO, AV, C>
-where
-    CO: Cost<AV, C>,
-    AV: AmountValue,
-    C: Currency,
-{
-    fn create_cost(amount: AV) -> CO;
-}
-
 #[macro_export]
 macro_rules! cost {
         (($c:ident $m:ident)) => {
@@ -337,17 +328,6 @@ macro_rules! cost {
                 }
             }
         };
-}
-
-impl<AV, CO, C> crate::CostFactory<CO, AV, C> for C
-where
-    CO: Cost<AV, C>,
-    AV: crate::AmountValue,
-    C: crate::Currency,
-{
-    fn create_cost(amount: AV) -> CO {
-        CO::new(amount)
-    }
 }
 
 #[macro_export]
@@ -447,13 +427,13 @@ where
     Self: Cost<AV, C>,
     AV: AmountValue + TryInto<MV> + TryFrom<MV>,
     MV: AmountValue + TryInto<AV>,
-    C: Currency + CostFactory<CO, AV, C>,
+    C: Currency,
     <AV as std::convert::TryFrom<MV>>::Error: Debug,
     <AV as std::convert::TryInto<MV>>::Error: Debug,
 {
     fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self> {
         let Taken { remaining, taken } = with_money.take(self.amount());
-        let left_to_pay = C::create_cost(
+        let left_to_pay = Self::new(
             self.amount()
                 .0
                 .clone()
@@ -704,7 +684,7 @@ pub mod test {
 
         mod money_is_same_type {
             use super::*;
-            use crate::{Change, CostFactory, Currency, PayWith};
+            use crate::{Change, Currency, PayWith};
             #[test]
             fn pay_full_cost() {
                 let money = Eur::create_money(4711u16);
@@ -714,113 +694,113 @@ pub mod test {
                     left_to_pay,
                 } = cost.pay_with(money);
                 assert_eq!(money_back, Eur::create_money(0u16));
-                assert_eq!(left_to_pay, Eur::create_cost(0u16));
+                assert_eq!(left_to_pay, Eur::create_price(0u16));
             }
 
             #[test]
             fn pay_partial_cost() {
                 let money = Eur::create_money(12u8);
-                let cost: Price<u8, Eur> = Eur::create_cost(24u8);
+                let cost = Eur::create_price(24u8);
                 let Change {
                     money_back,
                     left_to_pay,
                 } = cost.pay_with(money);
                 assert_eq!(money_back, Eur::create_money(0u8));
-                assert_eq!(left_to_pay, Eur::create_cost(12u8));
+                assert_eq!(left_to_pay, Eur::create_price(12u8));
             }
 
             #[test]
             fn pay_more_than_cost() {
                 let money = Eur::create_money(24u8);
-                let cost: Price<u8, Eur> = Eur::create_cost(12u8);
+                let cost = Eur::create_price(12u8);
                 let Change {
                     money_back,
                     left_to_pay,
                 } = cost.pay_with(money);
                 assert_eq!(money_back, Eur::create_money(12u8));
-                assert_eq!(left_to_pay, Eur::create_cost(0u8));
+                assert_eq!(left_to_pay, Eur::create_price(0u8));
             }
         }
         mod money_is_a_smaller_type {
             use super::*;
-            use crate::{Change, CostFactory, Currency, PayWith};
+            use crate::{Change, Currency, PayWith};
             #[test]
             fn pay_full_cost() {
                 let money = Eur::create_money(128u8);
-                let cost: Price<u16, Eur> = Eur::create_cost(128u16);
+                let cost = Eur::create_price(128u16);
                 let Change {
                     money_back,
                     left_to_pay,
                 } = cost.pay_with(money);
 
                 assert_eq!(money_back, Eur::create_money(0u8));
-                assert_eq!(left_to_pay, Eur::create_cost(0u16));
+                assert_eq!(left_to_pay, Eur::create_price(0u16));
             }
 
             #[test]
             fn pay_partial_cost() {
                 let money = Eur::create_money(128u8);
-                let cost: Price<u16, Eur> = Eur::create_cost(255u16);
+                let cost = Eur::create_price(255u16);
                 let Change {
                     money_back,
                     left_to_pay,
                 } = cost.pay_with(money);
                 assert_eq!(money_back, Eur::create_money(0u8));
-                assert_eq!(left_to_pay, Eur::create_cost(127u16));
+                assert_eq!(left_to_pay, Eur::create_price(127u16));
             }
 
             #[test]
             fn pay_more_than_cost() {
                 let money = Eur::create_money(255u8);
-                let cost: Price<u16, Eur> = Eur::create_cost(128u16);
+                let cost = Eur::create_price(128u16);
                 let Change {
                     money_back,
                     left_to_pay,
                 } = cost.pay_with(money);
 
                 assert_eq!(money_back, Eur::create_money(255u8 - 128));
-                assert_eq!(left_to_pay, Eur::create_cost(0u16));
+                assert_eq!(left_to_pay, Eur::create_price(0u16));
             }
         }
         mod money_is_a_larger_type {
             use super::*;
-            use crate::{Change, CostFactory, Currency, PayWith};
+            use crate::{Change, Currency, PayWith};
             #[test]
             fn pay_full_cost() {
                 let money = Eur::create_money(128u16);
-                let cost: Price<u8, Eur> = Eur::create_cost(128u8);
+                let cost = Eur::create_price(128u8);
                 let Change {
                     money_back,
                     left_to_pay,
                 } = cost.pay_with(money);
 
                 assert_eq!(money_back, Eur::create_money(0u16));
-                assert_eq!(left_to_pay, Eur::create_cost(0u8));
+                assert_eq!(left_to_pay, Eur::create_price(0u8));
             }
 
             #[test]
             fn pay_partial_cost() {
                 let money = Eur::create_money(128u16);
-                let cost: Price<u8, Eur> = Eur::create_cost(255u8);
+                let cost = Eur::create_price(255u8);
                 let Change {
                     money_back,
                     left_to_pay,
                 } = cost.pay_with(money);
                 assert_eq!(money_back, Eur::create_money(0u16));
-                assert_eq!(left_to_pay, Eur::create_cost(127u8));
+                assert_eq!(left_to_pay, Eur::create_price(127u8));
             }
 
             #[test]
             fn pay_more_than_cost() {
                 let money = Eur::create_money(4096u16);
-                let cost: Price<u8, Eur> = Eur::create_cost(255u8);
+                let cost = Eur::create_price(255u8);
                 let Change {
                     money_back,
                     left_to_pay,
                 } = cost.pay_with(money);
 
                 assert_eq!(money_back, Eur::create_money(4096u16 - 255));
-                assert_eq!(left_to_pay, Eur::create_cost(0u8));
+                assert_eq!(left_to_pay, Eur::create_price(0u8));
             }
         }
     }
