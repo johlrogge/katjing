@@ -22,8 +22,8 @@
 //! ```
 //! # #[macro_use] extern crate katjing;
 //! # fn main () {
-//! use katjing::Currency;
-//! currencies![EUR, SEK, USD];
+//! use katjing::{Currency, Cent};
+//! currencies![(EUR Cent), (SEK Cent), (USD Cent)];
 //! let some_eur = EUR::create_money(18u8);
 //! let some_sek = SEK::create_money(40000u128);
 //! let some_usd = USD::create_money(64000u32);
@@ -42,9 +42,9 @@
 //!
 //! ```
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::Currency;
+//! # use katjing::{Currency, Cent};
 //! use katjing::Cost;
-//! # currencies![EUR, SEK, USD];
+//! # currencies![(EUR Cent), (SEK Cent), (USD Cent)];
 //! costs![(Shipping shipping), (Price price)];
 //! fn main () {
 //!   let shipping_eur = EUR::create_shipping(1u8);
@@ -98,8 +98,8 @@
 //!
 //! ```
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::Currency;
-//! # currencies![EUR, SEK, USD];
+//! # use katjing::{Currency, Cent};
+//! # currencies![(EUR Cent), (SEK Cent), (USD Cent)];
 //! # fn main () {
 //!     EUR::create_money(1u8);
 //! # }
@@ -109,14 +109,14 @@
 //! ## paying costs
 //!
 //! While creating costs and money can be fun. Let's use it for something:
-//! 
+//!
 //! ```
 //! # #[macro_use] extern crate katjing;
 //! # use katjing::Currency;
-//! use katjing::{PayWith, Change};
+//! use katjing::{PayWith, Change, Cent};
 //! // define costs and currencies
 //! # costs![(Price price), (Shipping shipping)];
-//! # currencies![EUR, USD];
+//! # currencies![(EUR Cent), (USD Cent)];
 //! # fn main() {
 //! let shipping = EUR::create_shipping(12u8);
 //! let money = EUR::create_money(1000u16);
@@ -155,9 +155,9 @@
 //!
 //! ```
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::{Currency, Change, PayWith};
+//! # use katjing::{Currency, Change, PayWith, Cent};
 //! # costs![(Price price), (Shipping shipping)];
-//! # currencies![EUR, USD];
+//! # currencies![(EUR Cent), (USD Cent)];
 //! # fn main() {
 //! let shipping = EUR::create_shipping(12u8);
 //! let price = EUR::create_price(1000u16);
@@ -171,7 +171,7 @@
 //! assert_eq!( shipping, EUR::create_shipping(0u8));
 //! # }
 //! ```
-//! 
+//!
 //! [Money]: struct.Money.html
 //! [Amount]: struct.Amount.html
 //! [Cost]: trait.Cost.html
@@ -181,46 +181,65 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 use std::convert::{TryFrom, TryInto};
 
+pub trait SubUnit
+where Self:Sized {}
+
+#[derive(Debug)]
+pub struct Main();
+#[derive(Debug)]
+pub struct Cent();
+#[derive(Debug)]
+pub struct Mill();
+
+impl SubUnit for Main {}
+impl SubUnit for Cent {}
+impl SubUnit for Mill {}
+
 /// Represents currency. Mainly to keep money in different currencies as separate types that cannot be used together without conversion
-pub trait Currency
+pub trait Currency<SU>
 where
     Self: Sized,
+    SU:SubUnit,
 {
     /// creates an instance of money in this currency
-    fn create_money<V>(value: V) -> Money<V, Self>
+    fn create_money<V>(value: V) -> Money<V, Self, SU>
     where
         V: AmountValue,
     {
-        Money(value, PhantomData::<Self>)
+        Money(value, PhantomData::<Self>, PhantomData::<SU>)
     }
-    fn create_amount<V>(value: V) -> Amount<V, Self>
+    fn create_amount<V>(value: V) -> Amount<V, Self, SU>
     where
         V: AmountValue,
     {
-        Amount(value, PhantomData::<Self>)
+        Amount(value, PhantomData::<Self>, PhantomData::<SU>)
     }
 }
 
 /// A representation of money. Money has a value and a currency. The currency is PhantomData meaning that has no size and is only relevant in compiletime.
 ///
 /// ```
-/// use katjing::{Money, Currency, currencies};
-/// currencies!(Eur);
+/// use katjing::{Money, Currency, Cent, currencies};
+/// currencies![ (Eur Cent) ];
 ///
 /// // Money uses no more memory than it's internal representation
-/// assert_eq!(std::mem::size_of::<u32>(), std::mem::size_of::<Money<u32, Eur>>());
+/// assert_eq!(std::mem::size_of::<u32>(), std::mem::size_of::<Money<u32, Eur, Cent>>());
 /// ```
 #[derive(Debug)]
-pub struct Money<V: AmountValue, C: Currency>(V, PhantomData<C>);
+pub struct Money<V,C, SU>(V, PhantomData<C>, PhantomData<SU>)
+where V:AmountValue,
+      C:Currency<SU>,
+      SU:SubUnit ;
 
-impl<V, C> PartialEq<Money<V, C>> for Money<V, C>
+impl<V, C, SU> PartialEq<Money<V, C, SU>> for Money<V, C, SU>
 where
     V: AmountValue,
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
 {
     /// ```
-    /// use katjing::{Money, Currency, currencies};
-    /// currencies!(Eur);
+    /// use katjing::{Money, Currency, Cent, currencies};
+    /// currencies![(Eur Cent)];
     ///
     /// let eur_12 = Eur::create_money(12u32);
     /// assert_eq!(eur_12, eur_12);
@@ -232,19 +251,21 @@ where
 
 /// An abstract amount of money used for calculations
 #[derive(Debug, Eq, Ord, PartialOrd)]
-pub struct Amount<AV, C>(AV, PhantomData<C>)
+pub struct Amount<AV, C, SU>(AV, PhantomData<C>, PhantomData<SU>)
 where
     AV: AmountValue,
-    C: Currency;
+    C: Currency<SU>,
+    SU:SubUnit;
 
-impl<V, C> PartialEq<Amount<V, C>> for Amount<V, C>
+impl<V, C, SU> PartialEq<Amount<V, C, SU>> for Amount<V, C, SU>
 where
     V: AmountValue,
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
 {
     /// ```
-    /// use katjing::{Amount, Currency, currencies};
-    /// currencies!(Eur);
+    /// use katjing::{Amount, Currency, Cent, currencies};
+    /// currencies![(Eur Cent)];
     ///
     /// let eur_12 = Eur::create_amount(12u32);
     /// let eur_13 = Eur::create_amount(13u32);
@@ -256,56 +277,62 @@ where
     }
 }
 
-pub trait WrappedAmount<AV, C>
+pub trait WrappedAmount<AV, C, SU>
 where
     AV: AmountValue,
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
 {
-    fn amount<'a>(&'a self) -> &'a Amount<AV, C>;
+    fn amount<'a>(&'a self) -> &'a Amount<AV, C, SU>;
 }
 
-pub trait Cost<AV, C>
+pub trait Cost<AV, C, SU>
 where
-    Self: WrappedAmount<AV, C>,
+    Self: WrappedAmount<AV, C, SU>,
     AV: AmountValue,
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
 {
     fn new(amount: AV) -> Self;
 }
 
 #[macro_export]
-macro_rules! cost {
-        (($c:ident $m:ident)) => {
+        macro_rules! cost {
+        (($c:ident $m:ident )) => {
                 #[derive(Debug, Eq, PartialOrd, Ord)]
-                struct $c<AV, C>($crate::Amount<AV, C>)
+                struct $c<AV, C, SU>($crate::Amount<AV, C, SU>)
                 where
-                        AV: $crate::AmountValue,
-                        C: $crate::Currency;
+                   AV: $crate::AmountValue,
+                   C:  $crate::Currency<SU>,
+                   SU: $crate::SubUnit;
 
-                impl<AV, C> PartialEq for $c<AV, C>
+                impl<AV, C, SU> PartialEq for $c<AV, C, SU>
                 where
-                        AV: $crate::AmountValue,
-                        C: $crate::Currency,
+                   AV: $crate::AmountValue,
+                   C: $crate::Currency<SU>,
+                   SU: $crate::SubUnit,
                 {
-                        fn eq(&self, other: &$c<AV, C>) -> bool {
+                        fn eq(&self, other: &$c<AV, C, SU>) -> bool {
                                 self.0 == other.0
                         }
                 }
 
-                impl<AV, C> $crate::WrappedAmount<AV, C> for $c<AV, C>
+                impl<AV, C, SU> $crate::WrappedAmount<AV, C, SU> for $c<AV, C, SU>
                 where
-                        AV: $crate::AmountValue,
-                        C: $crate::Currency,
+                   AV: $crate::AmountValue,
+                   C: $crate::Currency<SU>,
+                   SU: $crate::SubUnit,
                 {
-                        fn amount(&self) -> &$crate::Amount<AV, C> {
+                        fn amount(&self) -> &$crate::Amount<AV, C, SU> {
                                 &self.0
                         }
                 }
 
-                impl<AV, C> $crate::Cost<AV, C> for $c<AV, C>
+                impl<AV, C, SU> $crate::Cost<AV, C, SU> for $c<AV, C, SU>
                 where
-                        AV: $crate::AmountValue,
-                        C: $crate::Currency,
+                   AV: $crate::AmountValue,
+                   C: $crate::Currency<SU>,
+                   SU: $crate::SubUnit,
                 {
                         fn new(amount: AV) -> Self {
                                 $c(C::create_amount(amount))
@@ -313,15 +340,21 @@ macro_rules! cost {
                 }
 
             paste::item! {
-                trait [< Create $c >] <C>
-                where C:$crate::Currency
+                trait [< Create $c >] <C, SU>
+                where
+                    C:$crate::Currency<SU>,
+                    SU: $crate::SubUnit,
                 {
-                    fn [< create_ $m >] <AV> (value:AV) -> $c <AV, C>
+                    fn [< create_ $m >] <AV> (value:AV) -> $c <AV, C, SU>
                         where AV:$crate::AmountValue;
                 }
 
-                impl <C> [< Create $c >]<C> for C where C:$crate::Currency {
-                    fn [< create_ $m >]<AV>  (value:AV) -> $c <AV, C>
+                impl <C, SU> [< Create $c >]<C, SU> for C
+                where
+                    C:$crate::Currency<SU>,
+                    SU:$crate::SubUnit,
+                {
+                    fn [< create_ $m >]<AV>  (value:AV) -> $c <AV, C, SU>
                     where AV:$crate::AmountValue {
                         $c(C::create_amount(value))
                     }
@@ -333,38 +366,41 @@ macro_rules! cost {
 #[macro_export]
 macro_rules! costs {
     ($(($c:ident $m:ident)),+) => ($(
-        cost!(($c $m));
+        cost!(($c $m ));
         )+)
 }
 
-pub struct Taken<MV, AV, C>
+pub struct Taken<MV, AV, C, SU>
 where
     MV: AmountValue,
     AV: AmountValue,
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
 {
-    pub remaining: Money<MV, C>,
-    pub taken: Amount<AV, C>,
+    pub remaining: Money<MV, C, SU>,
+    pub taken: Amount<AV, C, SU>,
 }
 
-pub trait Take<MV, AV, C>
+pub trait Take<MV, AV, C, SU>
 where
     MV: AmountValue,
     AV: AmountValue,
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
 {
-    fn take(self, amount: &Amount<AV, C>) -> Taken<MV, AV, C>;
+    fn take(self, amount: &Amount<AV, C, SU>) -> Taken<MV, AV, C, SU>;
 }
 
-impl<MV, AV, C> Take<MV, AV, C> for Money<MV, C>
+impl<MV, AV, C, SU> Take<MV, AV, C, SU> for Money<MV, C, SU>
 where
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
     AV: AmountValue + TryInto<MV> + TryFrom<MV>,
     MV: AmountValue + Debug,
     <AV as std::convert::TryFrom<MV>>::Error: Debug,
     <AV as std::convert::TryInto<MV>>::Error: Debug,
 {
-    fn take(self, amount: &Amount<AV, C>) -> Taken<MV, AV, C> {
+    fn take(self, amount: &Amount<AV, C, SU>) -> Taken<MV, AV, C, SU> {
         use std::cmp::Ordering::*;
         let money_needed = amount
             .0
@@ -409,29 +445,31 @@ where
 }
 
 /// Implement for payable things such as amounts
-pub trait PayWith<MV, AV, C>
+pub trait PayWith<MV, AV, C, SU>
 where
     Self: Sized,
     MV: AmountValue,
     AV: AmountValue,
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
 {
     /// consumes `with_money` and returns remaining money and left to pay after with_money has been
     /// deducted.
-    #[must_use="pay_with returns Change, it must be assigned"]
-    fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self>;
+    #[must_use = "pay_with returns Change, it must be assigned"]
+    fn pay_with(self, with_money: Money<MV, C, SU>) -> Change<Money<MV, C, SU>, Self>;
 }
 
-impl<CO, MV, AV, C> PayWith<MV, AV, C> for CO
+impl<CO, MV, AV, C, SU> PayWith<MV, AV, C, SU> for CO
 where
-    Self: Cost<AV, C>,
+    Self: Cost<AV, C, SU>,
     AV: AmountValue + TryInto<MV> + TryFrom<MV>,
     MV: AmountValue + TryInto<AV>,
-    C: Currency,
+    C:Currency<SU>,
+    SU: SubUnit,
     <AV as std::convert::TryFrom<MV>>::Error: Debug,
     <AV as std::convert::TryInto<MV>>::Error: Debug,
 {
-    fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self> {
+    fn pay_with(self, with_money: Money<MV, C, SU>) -> Change<Money<MV, C, SU>, Self> {
         let Taken { remaining, taken } = with_money.take(self.amount());
         let left_to_pay = Self::new(
             self.amount()
@@ -511,20 +549,21 @@ checked_sub_impl!(u8 u16 u32 u64 u128 usize);
 
 #[macro_export]
 macro_rules! currencies {
-    ($($cur:ident),+) => {
+    ($(($cur:ident $su:ident)),+) => {
         $(
         #[derive(Debug)]
-        pub struct $cur();
-        impl $crate::Currency for $cur {})+
+        pub struct $cur($su);
+        impl $crate::Currency<$su> for $cur {})+
     };
 }
 
 #[cfg(test)]
 pub mod test {
-    currencies!(Eur, Sek);
+    use crate::Cent;
+    currencies!((Eur Cent), (Sek Cent));
     mod money {
         use super::Eur;
-        use crate::{Currency, Money};
+        use crate::{Currency, Money, Cent};
         #[test]
         fn create_from_currency() {
             let eur_47 = Eur::create_money(47u32);
@@ -536,13 +575,13 @@ pub mod test {
 
         #[test]
         fn is_not_larger_than_value() {
-            assert!(std::mem::size_of::<Money<u32, Eur>>() == std::mem::size_of::<u32>());
+            assert!(std::mem::size_of::<Money<u32, Eur, Cent>>() == std::mem::size_of::<u32>());
         }
     }
 
     mod amount {
         use super::Eur;
-        use crate::{Amount, Currency};
+        use crate::{Amount, Currency, Cent};
 
         #[test]
         fn create_from_currency() {
@@ -556,7 +595,7 @@ pub mod test {
         #[test]
         fn is_not_larger_than_value() {
             assert_eq!(
-                std::mem::size_of::<Amount<u32, Eur>>(),
+                std::mem::size_of::<Amount<u32, Eur, Cent>>(),
                 std::mem::size_of::<u32>()
             );
         }
