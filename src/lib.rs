@@ -186,7 +186,7 @@ where
     /// creates an instance of money in this currency
     fn create_money<V>(value: V) -> Money<V, Self>
     where
-        V: MoneyValue,
+        V: AmountValue,
     {
         Money(value, PhantomData::<Self>)
     }
@@ -208,11 +208,11 @@ where
 /// assert_eq!(std::mem::size_of::<u32>(), std::mem::size_of::<Money<u32, Eur>>());
 /// ```
 #[derive(Debug)]
-pub struct Money<V: MoneyValue, C: Currency>(V, PhantomData<C>);
+pub struct Money<V: AmountValue, C: Currency>(V, PhantomData<C>);
 
 impl<V, C> PartialEq<Money<V, C>> for Money<V, C>
 where
-    V: MoneyValue,
+    V: AmountValue,
     C: Currency,
 {
     /// ```
@@ -356,7 +356,7 @@ macro_rules! costs {
 
 pub struct Taken<MV, AV, C>
 where
-    MV: MoneyValue,
+    MV: AmountValue,
     AV: AmountValue,
     C: Currency,
 {
@@ -366,7 +366,7 @@ where
 
 pub trait Take<MV, AV, C>
 where
-    MV: MoneyValue,
+    MV: AmountValue,
     AV: AmountValue,
     C: Currency,
 {
@@ -377,7 +377,7 @@ impl<MV, AV, C> Take<MV, AV, C> for Money<MV, C>
 where
     C: Currency,
     AV: AmountValue + TryInto<MV> + TryFrom<MV>,
-    MV: MoneyValue + Debug,
+    MV: AmountValue + Debug,
     <AV as std::convert::TryFrom<MV>>::Error: Debug,
     <AV as std::convert::TryInto<MV>>::Error: Debug,
 {
@@ -429,7 +429,7 @@ where
 pub trait PayWith<MV, AV, C>
 where
     Self: Sized,
-    MV: MoneyValue,
+    MV: AmountValue,
     AV: AmountValue,
     C: Currency,
 {
@@ -443,7 +443,7 @@ impl<CO, MV, AV, C> PayWith<MV, AV, C> for CO
 where
     Self: Cost<AV, C>,
     AV: AmountValue + TryInto<MV> + TryFrom<MV>,
-    MV: MoneyValue + TryInto<AV>,
+    MV: AmountValue + TryInto<AV>,
     C: Currency + CostFactory<CO, AV, C>,
     <AV as std::convert::TryFrom<MV>>::Error: Debug,
     <AV as std::convert::TryInto<MV>>::Error: Debug,
@@ -465,27 +465,18 @@ where
     }
 }
 
-/// MoneyValue is just a collection of traits needed to properly represent a monetary value.
+/// AmountValue is just a collection of traits needed to properly represent a monetary value.
 /// It is implemented via a blanket implementation on all types that implement all the needed
-/// traits. You should never need to implement MoneyValue directly.
-pub trait MoneyValue
+/// traits. You should never need to implement AmountValue directly.
+pub trait AmountValue
 where
     Self: Clone + Sized + Debug + Zero + MaxValue + Eq + Ord + CheckedSub<Output = Self>,
 {
 }
-/// Blanket implementation of MoneyValue
-impl<T> MoneyValue for T
+/// Blanket implementation of AmountValue
+impl<T> AmountValue for T
 where
     T: Clone + Sized + Debug + Zero + MaxValue + Eq + Ord + CheckedSub<Output = Self>,
-{
-}
-
-/// AmountValue is just a collection of traits needed to properly represent a monetary value.
-/// It is implemented via a blanket implementation on all typs that implement all the needed
-/// traits. You should never need to implement MoneyValue directly.
-pub trait AmountValue
-where
-    Self: MoneyValue,
 {
 }
 
@@ -534,13 +525,6 @@ macro_rules! checked_sub_impl {
 }
 
 checked_sub_impl!(u8 u16 u32 u64 u128 usize);
-
-/// Blanket implementation of AmountValue
-impl<T> AmountValue for T
-where
-    T: MoneyValue + Clone,
-{
-}
 
 #[macro_export]
 macro_rules! currencies {
