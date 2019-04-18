@@ -174,7 +174,6 @@
 //! [Cost]: trait.Cost.html
 
 #![doc(html_playground_url = "https://play.rust-lang.org/")]
-pub use paste::item;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use std::convert::{TryFrom, TryInto};
