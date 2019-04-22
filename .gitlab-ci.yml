@@ -3,7 +3,11 @@ image: "rust:latest"
 cache:
   paths:
     - target/
+    - .cargo
 
+before-script:
+  - export CARGO_HOME=.cargo
+    
 stages:
   - build
   - test
@@ -31,5 +35,5 @@ pages:
   artifacts:
     paths:
       - public
-    only:
-      - master
+  only:
+    - master
