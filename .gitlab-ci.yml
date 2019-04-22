@@ -1,8 +1,35 @@
-
 image: "rust:latest"
 
-# Use cargo to test the project
-test:cargo:
+cache:
+  paths:
+    - target/
+
+stages:
+  - build
+  - test
+  - deploy
+
+cargo:build:
+  stage: build
   script:
   - rustc --version && cargo --version      # Print version info for debugging
-  - cargo test --all --verbose
+  - cargo build
+
+
+cargo:test:
+  stage: test
+  script:
+  - cargo test --all
+  
+pages:
+  stage: deploy
+  script:
+  - cargo doc
+  - mkdir .public
+  - cp -r target/doc .public/doc
+  - mv .public public
+  artifacts:
+    paths:
+      - public
+    only:
+      - master
