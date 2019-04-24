@@ -5,7 +5,7 @@ cache:
     - target/
     - .cargo
 
-before-script:
+before_script:
   - export CARGO_HOME=.cargo
     
 stages:

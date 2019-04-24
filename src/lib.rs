@@ -1,7 +1,7 @@
 //! Strong typed money.
 //!
 //! Katjing is a money library that attempts to check as much as possible at compile time. If possible with zero run-time overhead.
-//! If a compromize has to be made, chose the safer option. Katjing is mostly concerned with structural correctness and outsources
+//! If a compromise has to be made, chose the safer option. Katjing is mostly concerned with structural correctness and outsources
 //! the details to other types. That is why [Money] is generic. Lastly  Katjing tries not to do surprising things!
 //!
 //! For example:
