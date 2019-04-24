@@ -1,4 +1,4 @@
-//! Strong typed money.
+//! Strongly typed money.
 //!
 //! Katjing is a money library that attempts to check as much as possible at compile time. If possible with zero run-time overhead.
 //! If a compromise has to be made, chose the safer option. Katjing is mostly concerned with structural correctness and outsources
@@ -6,10 +6,10 @@
 //!
 //! For example:
 //!
-//! * [Money] represents currency as phantom data allowing compile time checking of not mixing currencies while not using more memory than reqired to store the actual [Amount].
+//! * [Money] represents currency as phantom data allowing compile time checking of not mixing currencies while not using more memory than required to store the actual [Amount].
 //! * [Money] is unsigned, can never go below zero, does not allow fractions and will return an error on overflows.
-//! * [Money] is a representation of actual money in hand, when paying an [Cost] the money is consumed and returns the remaning [Cost] as change. This way, the same money cannot be used to pay more then one [Amount].
-//! * All conversions between currencies have to be explictly specified when needed.
+//! * [Money] is a representation of actual money in hand, when paying a [Cost] the money is consumed and returns the remaining [Cost] as change. This way, the same money cannot be used to pay more than one [Amount].
+//! * All conversions between currencies have to be explicitly specified when needed.
 //! * Katjing is experimental and has not been reviewed for production use, use at your own risk*
 //!
 //! # Examples
@@ -25,16 +25,18 @@
 //! use katjing::{Currency, Cent};
 //! currencies![(EUR Cent), (SEK Cent), (USD Cent)];
 //! let some_eur = EUR::create_money(18u8);
-//! let some_sek = SEK::create_money(40000u128);
-//! let some_usd = USD::create_money(64000u32);
+//! let some_sek = SEK::create_money(40_000u128);
+//! let some_usd = USD::create_money(64_000u32);
 //! # }
 //! ```
 //! As you can see you can create money of different types, and you create them from a currency.
-//! The currency is just phantomdata and is only relevant during compiletime and allows rust to
-//! make sure that you don't do nonsensical things by mistake (like adding 2 SEK to 10 USD, Then you
-//! would just have 2 SEK and 10 USD unless you BUY USD for your SEK which is a different operation entirely)
+//! The currency is just phantomdata and is only relevant during compile time and allows rust to
+//! make sure that you don't do nonsensical things by mistake [^adding]
 //!
 //! But what good is wealth if you can't spend it on anything?
+//!
+//! [^adding]: like adding 2 SEK to 10 USD, Then you would just have 2 SEK and 10 USD unless you BUY
+//!            USD for your SEK which is a different operation entirely)
 //!
 //! ## Costs
 //! Just like currencies katjing allows you to define costs. A cost is something that can be covered (payed), like
@@ -60,7 +62,7 @@
 //! Lastly, costs and money are created from a currency. **You cannot mix currencies**
 //! From now on we will assume the above costs and currencies are defined.
 //!
-//! As mentioned initally Katjing tries to prevent as many errors as possible at compiletime. Here are a few examples we can demonstrate with what we know:
+//! As mentioned initially Katjing tries to prevent as many errors as possible at compile time. Here are a few examples we can demonstrate with what we know:
 //!
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
@@ -72,7 +74,7 @@
 //!     let shipping_eur:Shipping<u8, USD> = EUR::create_shipping(1u8);
 //! # }
 //! ```
-//! *You cannot assign a cost to a cost different currency*
+//! *You cannot assign a cost to a cost different currency.*
 //!
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
@@ -84,7 +86,7 @@
 //!     let shipping_eur:Shipping<u8, EUR> = EUR::create_price(1u8);
 //! # }
 //! ```
-//! *You cannot assign a cost to a cost of a different type*
+//! *You cannot assign a cost to a cost of a different type.*
 //!
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
@@ -94,7 +96,7 @@
 //!     let money_usd:Money<u8, USD> = EUR::create_money(1u8);
 //! # }
 //! ```
-//! *You cannot assign money to money of a different currency*
+//! *You cannot assign money to money of a different currency.*
 //!
 //! ```
 //! # #[macro_use] extern crate katjing;
@@ -104,9 +106,9 @@
 //!     EUR::create_money(1u8);
 //! # }
 //! ```
-//! *Warns if you don't assign created money to something*
+//! *Warns if you don't assign created money to something.*
 //!
-//! ## paying costs
+//! ## Paying costs
 //!
 //! While creating costs and money can be fun. Let's use it for something:
 //!
@@ -119,10 +121,10 @@
 //! # currencies![(EUR Cent), (USD Cent)];
 //! # fn main() {
 //! let shipping = EUR::create_shipping(12u8);
-//! let money = EUR::create_money(1000u16);
+//! let money = EUR::create_money(1_000u16);
 //!
 //! let Change{money_back, left_to_pay} = shipping.pay_with(money);
-//! assert_eq!(money_back, EUR::create_money(1000u16-12));
+//! assert_eq!(money_back, EUR::create_money(1_000u16-12));
 //! assert_eq!(left_to_pay, EUR::create_shipping(0u8));
 //! # }
 //! ```
@@ -142,14 +144,14 @@
 //! # currencies![EUR, USD];
 //! # fn main() {
 //! let shipping = EUR::create_shipping(12u8);
-//! let price = EUR::create_price(1000u16);
-//! let money = EUR::create_money(1012u16);
+//! let price = EUR::create_price(1_000u16);
+//! let money = EUR::create_money(1_012u16);
 //!
 //! let Change{ money_back, left_to_pay } = price.pay_with(money);
 //! let Change{ money_back, left_to_pay } = shipping.pay_with(money); // <- fails: money has already been used to pay price with
 //! # }
 //! ```
-//! *money has moved when paying price, it cannot be used again. This prevents paying the cost wit money we don't have*
+//! *`money` has moved when paying `price`, it cannot be used again. This prevents paying the cost with money we don't have.*
 //!
 //! Let's fix the code above:
 //!
@@ -160,8 +162,8 @@
 //! # currencies![(EUR Cent), (USD Cent)];
 //! # fn main() {
 //! let shipping = EUR::create_shipping(12u8);
-//! let price = EUR::create_price(1000u16);
-//! let money = EUR::create_money(1014u16);
+//! let price = EUR::create_price(1_000u16);
+//! let money = EUR::create_money(1_014u16);
 //!
 //! let Change{ money_back:money, left_to_pay:price } = price.pay_with(money);
 //! let Change{ money_back:money, left_to_pay:shipping } = shipping.pay_with(money);
@@ -176,7 +178,6 @@
 //! [Amount]: struct.Amount.html
 //! [Cost]: trait.Cost.html
 
-#![doc(html_playground_url = "https://play.rust-lang.org/")]
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use std::convert::{TryFrom, TryInto};
