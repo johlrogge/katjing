@@ -1,12 +1,12 @@
 //! Strong typed money.
 //!
-//! Katjing is a money library that attempts to check as much as possible at compile time. If possible with zero runtime overhead.
+//! Katjing is a money library that attempts to check as much as possible at compile time. If possible with zero run-time overhead.
 //! If a compromize has to be made, chose the safer option. Katjing is mostly concerned with structural correctness and outsources
 //! the details to other types. That is why [Money] is generic. Lastly  Katjing tries not to do surprising things!
 //!
 //! For example:
 //!
-//! * [Money] represents currency as phantom data allowing compiletime checking of not mixing currencies while not using more memory than reqired to store the actual [Amount].
+//! * [Money] represents currency as phantom data allowing compile time checking of not mixing currencies while not using more memory than reqired to store the actual [Amount].
 //! * [Money] is unsigned, can never go below zero, does not allow fractions and will return an error on overflows.
 //! * [Money] is a representation of actual money in hand, when paying an [Cost] the money is consumed and returns the remaning [Cost] as change. This way, the same money cannot be used to pay more then one [Amount].
 //! * All conversions between currencies have to be explictly specified when needed.
