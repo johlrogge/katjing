@@ -298,8 +298,8 @@ where
 }
 
 #[macro_export]
-        macro_rules! cost {
-        (($c:ident $m:ident )) => {
+macro_rules! costs {
+        (@cost ($c:ident $m:ident )) => {
                 #[derive(Debug, Eq, PartialOrd, Ord)]
                 struct $c<AV, C, SU>($crate::Amount<AV, C, SU>)
                 where
@@ -362,12 +362,9 @@ where
                 }
             }
         };
-}
 
-#[macro_export]
-macro_rules! costs {
     ($(($c:ident $m:ident)),+) => ($(
-        cost!(($c $m ));
+        costs!(@cost ($c $m));
         )+)
 }
 
