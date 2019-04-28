@@ -195,22 +195,28 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 use std::convert::{TryFrom, TryInto};
 
-pub trait SubUnit
+pub trait Unit
 where
         Self: Sized,
 {
+        type C: Currency;
 }
 
-#[derive(Debug)]
-pub struct Main();
-#[derive(Debug)]
-pub struct Cent();
-#[derive(Debug)]
-pub struct Mill();
-
-impl SubUnit for Main {}
-impl SubUnit for Cent {}
-impl SubUnit for Mill {}
+pub trait Main
+where
+        Self: Unit + Debug,
+{
+}
+pub trait Cent
+where
+        Self: Unit + Debug,
+{
+}
+pub trait Mill
+where
+        Self: Unit + Debug,
+{
+}
 
 /// Represents currency. Mainly to keep money in different currencies as separate types that cannot be used together without conversion
 pub trait Currency
@@ -302,7 +308,7 @@ pub trait WrappedAmount {
 /// Represents a cost that can be payed
 pub trait Cost
 where
-    Self: WrappedAmount,
+        Self: WrappedAmount,
 {
         fn new(amount: Self::AV) -> Self;
 }
@@ -450,7 +456,7 @@ where
         Self: Sized,
         MV: AmountValue,
 {
-    type C: Currency;
+        type C: Currency;
 
         /// consumes `with_money` and returns remaining money and left to pay after with_money has been
         /// deducted.
@@ -466,7 +472,7 @@ where
         <<Self as WrappedAmount>::AV as std::convert::TryFrom<MV>>::Error: Debug,
         <<Self as WrappedAmount>::AV as std::convert::TryInto<MV>>::Error: Debug,
 {
-    type C = <Self as WrappedAmount>::C;
+        type C = <Self as WrappedAmount>::C;
         fn pay_with(self, with_money: Money<MV, Self::C>) -> Change<Money<MV, Self::C>, Self> {
                 let Taken { remaining, taken } = take(with_money, self.amount());
                 let left_to_pay = Self::new(
@@ -549,14 +555,13 @@ macro_rules! currencies {
     ($(($cur:ident $su:ident)),+) => {
         $(
         #[derive(Debug)]
-        pub struct $cur($su);
+        pub struct $cur();
         impl $crate::Currency for $cur {})+
     };
 }
 
 #[cfg(test)]
 pub mod test {
-        use crate::Cent;
         currencies!((Eur Cent), (Sek Cent));
         mod money {
                 use super::Eur;
