@@ -293,21 +293,21 @@ where
 /// Trait wrapping amounts. Used for implementing amount specializations like [Cost]
 ///
 /// [Cost]: trait.Cost.html
-pub trait WrappedAmount<AV, C>
+pub trait WrappedAmount<AV>
 where
         AV: AmountValue,
-        C: Currency,
 {
-        fn amount<'a>(&'a self) -> &'a Amount<AV, C>;
+        type C: Currency;
+        fn amount<'a>(&'a self) -> &'a Amount<AV, Self::C>;
 }
 
 /// Represents a cost that can be payed
-pub trait Cost<AV, C>
+pub trait Cost<AV>
 where
-        Self: WrappedAmount<AV, C>,
+        Self: WrappedAmount<AV>,
         AV: AmountValue,
-        C: Currency,
 {
+        type C: Currency;
         fn new(amount: AV) -> Self;
 }
 
@@ -331,23 +331,25 @@ macro_rules! costs {
                         }
                 }
 
-                impl<AV, C> $crate::WrappedAmount<AV, C> for $c<AV, C>
+                impl<AV, CC> $crate::WrappedAmount<AV> for $c<AV, CC>
                 where
                    AV: $crate::AmountValue,
-                   C: $crate::Currency,
-                {
-                        fn amount(&self) -> &$crate::Amount<AV, C> {
+                   CC: $crate::Currency,
+            {
+                    type C = CC;
+                        fn amount(&self) -> &$crate::Amount<AV, Self::C> {
                                 &self.0
                         }
                 }
 
-                impl<AV, C> $crate::Cost<AV, C> for $c<AV, C>
+                impl<AV, CC> $crate::Cost<AV> for $c<AV, CC>
                 where
                    AV: $crate::AmountValue,
-                   C: $crate::Currency,
-                {
+                   CC: $crate::Currency,
+            {
+                    type C = CC;
                         fn new(amount: AV) -> Self {
-                                $c(C::create_amount(amount))
+                                $c(CC::create_amount(amount))
                         }
                 }
 
@@ -447,29 +449,29 @@ where
 }
 
 /// Implement for payable things such as amounts
-pub trait PayWith<MV, AV, C>
+pub trait PayWith<MV, AV>
 where
         Self: Sized,
         MV: AmountValue,
         AV: AmountValue,
-        C: Currency,
 {
+        type C: Currency;
         /// consumes `with_money` and returns remaining money and left to pay after with_money has been
         /// deducted.
         #[must_use = "pay_with returns Change, it must be assigned"]
-        fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self>;
+        fn pay_with(self, with_money: Money<MV, Self::C>) -> Change<Money<MV, Self::C>, Self>;
 }
 
-impl<CO, MV, AV, C> PayWith<MV, AV, C> for CO
+impl<CO, MV, AV> PayWith<MV, AV> for CO
 where
-        Self: Cost<AV, C>,
+        Self: Cost<AV>,
         AV: AmountValue + TryInto<MV> + TryFrom<MV>,
         MV: AmountValue + TryInto<AV>,
-        C: Currency,
         <AV as std::convert::TryFrom<MV>>::Error: Debug,
         <AV as std::convert::TryInto<MV>>::Error: Debug,
 {
-        fn pay_with(self, with_money: Money<MV, C>) -> Change<Money<MV, C>, Self> {
+        type C = <Self as WrappedAmount<AV>>::C;
+        fn pay_with(self, with_money: Money<MV, Self::C>) -> Change<Money<MV, Self::C>, Self> {
                 let Taken { remaining, taken } = take(with_money, self.amount());
                 let left_to_pay = Self::new(
                         self.amount()
