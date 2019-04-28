@@ -22,7 +22,7 @@
 //! ```
 //! # #[macro_use] extern crate katjing;
 //! # fn main () {
-//! use katjing::{Currency, Main, Cent, Mill};
+//! use katjing::prelude::*;
 //! currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! let some_idr = IDR::create_money(18u8);
 //! let some_eur = EUR::create_money(40_000u128);
@@ -44,7 +44,19 @@
 //! The subunit is abstract and is not concerned with the actual names of the subunits. For instance: SEK would declare
 //! `Cent` even though the actual name of the subunit is *öre*.
 //!
-//! We will look more into subunits later but for now, that is what they mean.
+//! ## Units
+//! In the above examples we have created amounts from the main unit. But what if we want to use those cents and mills?
+//!
+//! ```
+//! # #[macro_use] extern crate katjing;
+//! # fn main () {
+//! use katjing::prelude::*;
+//! currencies![(IDR Main), (EUR Cent), (KWD Mill)];
+//! let some_idr = IDR::create_money(18u8);
+//! let some_eur = EUR::Cent::create_money(40_000u128);
+//! let some_kwd = KWD::Mill::create_money(64_000u32);
+//! # }
+//! ```
 //!
 //! But what good is wealth if you can't spend it on anything?
 //!
@@ -57,15 +69,14 @@
 //!
 //! ```
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::{Currency, Cent};
-//! use katjing::Cost;
+//! use katjing::prelude::*;
 //! # currencies![(EUR Cent), (SEK Cent), (USD Cent)];
 //! costs![(Shipping shipping), (Price price)];
 //! fn main () {
-//!   let shipping_eur = EUR::create_shipping(1u8);
-//!   let shipping_usd = USD::create_shipping(2u8);
-//!   let price_eur = EUR::create_price(100u16);
-//!   let price_usd = USD::create_price(128u16);
+//!   let shipping_eur = EUR::Main::create_shipping(1u8);
+//!   let shipping_usd = USD::Main::create_shipping(2u8);
+//!   let price_eur = EUR::Main::create_price(100u16);
+//!   let price_usd = USD::Main::create_price(128u16);
 //! }
 //! ```
 //!
@@ -79,8 +90,7 @@
 //!
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::Currency;
-//! # use katjing::Cost;
+//! # use katjing::prelude::*;
 //! # currencies![EUR, SEK, USD];
 //! # costs![(Shipping shipping), (Price price)];
 //! # fn main () {
@@ -91,8 +101,7 @@
 //!
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::Currency;
-//! # use katjing::Cost;
+//! # use katjing::prelude::*;
 //! # currencies![EUR, SEK, USD];
 //! # costs![(Shipping shipping), (Price price)];
 //! # fn main () {
@@ -103,7 +112,7 @@
 //!
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::Currency;
+//! # use katjing::prelude::*;
 //! # currencies![EUR, SEK, USD];
 //! # fn main () {
 //!     let money_usd:Money<u8, USD> = EUR::create_money(1u8);
@@ -113,7 +122,7 @@
 //!
 //! ```
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::{Currency, Cent};
+//! # use katjing::prelude::*;
 //! # currencies![(EUR Cent), (SEK Cent), (USD Cent)];
 //! # fn main () {
 //!     EUR::create_money(1u8);
@@ -127,18 +136,17 @@
 //!
 //! ```
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::Currency;
-//! use katjing::{PayWith, Change, Cent};
+//! use katjing::prelude::*;
 //! // define costs and currencies
 //! # costs![(Price price), (Shipping shipping)];
 //! # currencies![(EUR Cent), (USD Cent)];
 //! # fn main() {
-//! let shipping = EUR::create_shipping(12u8);
-//! let money = EUR::create_money(1_000u16);
+//! let shipping = EUR::Main::create_shipping(12u8);
+//! let money = EUR::Main::create_money(1_000u16);
 //!
 //! let Change{money_back, left_to_pay} = shipping.pay_with(money);
-//! assert_eq!(money_back, EUR::create_money(1_000u16-12));
-//! assert_eq!(left_to_pay, EUR::create_shipping(0u8));
+//! assert_eq!(money_back, EUR::Main::create_money(1_000u16-12));
+//! assert_eq!(left_to_pay, EUR::Main::create_shipping(0u8));
 //! # }
 //! ```
 //!
@@ -152,7 +160,7 @@
 //!
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::{Currency, Change, PayWith};
+//! # use katjing::prelude::*;
 //! # costs![(Price price), (Shipping shipping)];
 //! # currencies![EUR, USD];
 //! # fn main() {
@@ -170,20 +178,20 @@
 //!
 //! ```
 //! # #[macro_use] extern crate katjing;
-//! # use katjing::{Currency, Change, PayWith, Cent};
+//! # use katjing::prelude::*;
 //! # costs![(Price price), (Shipping shipping)];
 //! # currencies![(EUR Cent), (USD Cent)];
 //! # fn main() {
-//! let shipping = EUR::create_shipping(12u8);
-//! let price = EUR::create_price(1_000u16);
-//! let money = EUR::create_money(1_014u16);
+//! let shipping = EUR::Main::create_shipping(12u8);
+//! let price = EUR::Main::create_price(1_000u16);
+//! let money = EUR::Main::create_money(1_014u16);
 //!
 //! let Change{ money_back:money, left_to_pay:price } = price.pay_with(money);
 //! let Change{ money_back:money, left_to_pay:shipping } = shipping.pay_with(money);
 //!
 //! assert_eq!( money, EUR::create_money(2u16));
-//! assert_eq!( price, EUR::create_price(0u16));
-//! assert_eq!( shipping, EUR::create_shipping(0u8));
+//! assert_eq!( price, EUR::Main::create_price(0u16));
+//! assert_eq!( shipping, EUR::Main::create_shipping(0u8));
 //! # }
 //! ```
 //!
@@ -195,27 +203,30 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 use std::convert::{TryFrom, TryInto};
 
-pub trait Unit
-where
-        Self: Sized,
-{
-        type C: Currency;
-}
+pub mod unit {
+        use core::fmt::Debug;
+        pub trait Unit
+        where
+                Self: Sized,
+        {
+                type C: super::Currency;
+        }
 
-pub trait Main
-where
-        Self: Unit + Debug,
-{
-}
-pub trait Cent
-where
-        Self: Unit + Debug,
-{
-}
-pub trait Mill
-where
-        Self: Unit + Debug,
-{
+        pub trait Main
+        where
+                Self: Unit + Debug,
+        {
+        }
+        pub trait Cent
+        where
+                Self: Unit + Debug,
+        {
+        }
+        pub trait Mill
+        where
+                Self: Unit + Debug,
+        {
+        }
 }
 
 /// Represents currency. Mainly to keep money in different currencies as separate types that cannot be used together without conversion
@@ -241,11 +252,14 @@ where
 /// A representation of money. Money has a value and a currency. The currency is PhantomData meaning that has no size and is only relevant in compiletime.
 ///
 /// ```
-/// use katjing::{Money, Currency, Cent, currencies};
+/// # #[macro_use] extern crate katjing;
+/// # fn main () {
+/// use katjing::prelude::*;
 /// currencies![ (Eur Cent) ];
 ///
 /// // Money uses no more memory than it's internal representation
-/// assert_eq!(std::mem::size_of::<u32>(), std::mem::size_of::<Money<u32, Eur>>());
+/// assert_eq!(std::mem::size_of::<u32>(), std::mem::size_of::<Money<u32, Eur::Main>>());
+/// }
 /// ```
 #[derive(Debug)]
 pub struct Money<V, C>(V, PhantomData<C>)
@@ -259,11 +273,14 @@ where
         C: Currency,
 {
         /// ```
-        /// use katjing::{Money, Currency, Cent, currencies};
-        /// currencies![(Eur Cent)];
+        /// # #[macro_use] extern crate katjing;
+        /// # fn main () {
+        /// use katjing::prelude::*;
+        /// currencies![(eur Cent)];
         ///
-        /// let eur_12 = Eur::create_money(12u32);
+        /// let eur_12 = eur::create_money(12u32);
         /// assert_eq!(eur_12, eur_12);
+        ///}
         ///```
         fn eq(&self, other: &Self) -> bool {
                 self.0 == other.0
@@ -283,13 +300,16 @@ where
         C: Currency,
 {
         /// ```
-        /// use katjing::{Amount, Currency, Cent, currencies};
-        /// currencies![(Eur Cent)];
+        /// # #[macro_use] extern crate katjing;
+        /// # fn main () {
+        /// use katjing::prelude::*;
+        /// currencies![(eur Cent)];
         ///
-        /// let eur_12 = Eur::create_amount(12u32);
-        /// let eur_13 = Eur::create_amount(13u32);
+        /// let eur_12 = eur::create_amount(12u32);
+        /// let eur_13 = eur::create_amount(13u32);
         /// assert_eq!(eur_12, eur_12);
         /// assert_ne!(eur_13, eur_12);
+        /// }
         /// ```
         fn eq(&self, other: &Self) -> bool {
                 self.0 == other.0
@@ -552,24 +572,68 @@ checked_sub_impl!(u8 u16 u32 u64 u128 usize);
 
 #[macro_export]
 macro_rules! currencies {
+    (@unit Main) => {
+
+    };
+    (@unit $u:ident) => {
+
+                #[derive(Debug)]
+                pub struct $u {}
+                impl $crate::unit::$u for $u {
+                }
+
+                impl $crate::unit::Unit for $u {
+                    type C = $u;
+                }
+
+                impl $crate::Currency for $u {}
+
+    };
     ($(($cur:ident $su:ident)),+) => {
         $(
-        #[derive(Debug)]
-        pub struct $cur();
-        impl $crate::Currency for $cur {})+
+            pub mod $cur {
+
+                #[derive(Debug)]
+                pub struct Main {}
+                impl $crate::unit::Main for Main {
+                }
+
+                impl $crate::unit::Unit for Main {
+                    type C = Main;
+                }
+
+                impl $crate::Currency for Main {}
+
+                currencies!(@unit $su);
+
+                pub fn create_money<AV:$crate::AmountValue>(value:AV) -> $crate::Money<AV, Main> {
+                    use $crate::Currency;
+                    Main::create_money(value)
+                }
+
+                pub fn create_amount<AV:$crate::AmountValue>(value:AV) -> $crate::Amount<AV, Main> {
+                    use $crate::Currency;
+                    Main::create_amount(value)
+                }
+        })+
     };
+}
+
+pub mod prelude {
+        pub use crate::unit::{Cent, Main, Mill};
+        pub use crate::{Amount, Change, Currency, Money, PayWith};
 }
 
 #[cfg(test)]
 pub mod test {
-        currencies!((Eur Cent), (Sek Cent));
+        currencies!((eur Cent), (sek Cent));
         mod money {
-                use super::Eur;
-                use crate::{Currency, Money};
+                use super::eur;
+                use crate::Money;
                 #[test]
                 fn create_from_currency() {
-                        let eur_47 = Eur::create_money(47u32);
-                        let eur_11 = Eur::create_money(11u32);
+                        let eur_47 = eur::create_money(47u32);
+                        let eur_11 = eur::create_money(11u32);
 
                         assert_eq!(eur_47, eur_47);
                         assert_ne!(eur_11, eur_47);
@@ -577,19 +641,19 @@ pub mod test {
 
                 #[test]
                 fn is_not_larger_than_value() {
-                        assert!(std::mem::size_of::<Money<u32, Eur>>()
+                        assert!(std::mem::size_of::<Money<u32, eur::Main>>()
                                 == std::mem::size_of::<u32>());
                 }
         }
 
         mod amount {
-                use super::Eur;
-                use crate::{Amount, Currency};
+                use super::eur;
+                use crate::Amount;
 
                 #[test]
                 fn create_from_currency() {
-                        let eur_47 = Eur::create_amount(47u32);
-                        let eur_11 = Eur::create_amount(11u32);
+                        let eur_47 = eur::create_amount(47u32);
+                        let eur_11 = eur::create_amount(11u32);
 
                         assert_eq!(eur_47, eur_47);
                         assert_ne!(eur_47, eur_11);
@@ -598,7 +662,7 @@ pub mod test {
                 #[test]
                 fn is_not_larger_than_value() {
                         assert_eq!(
-                                std::mem::size_of::<Amount<u32, Eur>>(),
+                                std::mem::size_of::<Amount<u32, eur::Main>>(),
                                 std::mem::size_of::<u32>()
                         );
                 }
@@ -607,243 +671,243 @@ pub mod test {
         mod take {
 
                 mod money_and_amount_are_same_type {
-                        use super::super::Eur;
-                        use crate::{take, Currency, Taken};
+                        use super::super::eur;
+                        use crate::{take, Taken};
 
                         #[test]
                         fn take_full_amount_from_money() {
-                                let money = Eur::create_money(4711u32);
-                                let amount = Eur::create_amount(4711u32);
+                                let money = eur::create_money(4711u32);
+                                let amount = eur::create_amount(4711u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(0u32));
-                                assert_eq!(taken, Eur::create_amount(4711u32));
+                                assert_eq!(remaining, eur::create_money(0u32));
+                                assert_eq!(taken, eur::create_amount(4711u32));
                         }
 
                         #[test]
                         fn take_lower_amount_from_money() {
-                                let money = Eur::create_money(20u32);
-                                let amount = Eur::create_amount(15u32);
+                                let money = eur::create_money(20u32);
+                                let amount = eur::create_amount(15u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(5u32));
-                                assert_eq!(taken, Eur::create_amount(15u32));
+                                assert_eq!(remaining, eur::create_money(5u32));
+                                assert_eq!(taken, eur::create_amount(15u32));
                         }
 
                         #[test]
                         fn take_higher_amount_from_money() {
-                                let money = Eur::create_money(15u32);
-                                let amount = Eur::create_amount(20u32);
+                                let money = eur::create_money(15u32);
+                                let amount = eur::create_amount(20u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(0u32));
-                                assert_eq!(taken, Eur::create_amount(15u32));
+                                assert_eq!(remaining, eur::create_money(0u32));
+                                assert_eq!(taken, eur::create_amount(15u32));
                         }
                 }
                 mod money_is_a_larger_type_than_amount {
-                        use super::super::Eur;
-                        use crate::{take, Currency, Taken};
+                        use super::super::eur;
+                        use crate::{take, Taken};
 
                         #[test]
                         fn take_full_amount_from_money() {
-                                let money = Eur::create_money(4711u64);
-                                let amount = Eur::create_amount(4711u32);
+                                let money = eur::create_money(4711u64);
+                                let amount = eur::create_amount(4711u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(0u64));
-                                assert_eq!(taken, Eur::create_amount(4711u32));
+                                assert_eq!(remaining, eur::create_money(0u64));
+                                assert_eq!(taken, eur::create_amount(4711u32));
                         }
 
                         #[test]
                         fn take_lower_amount_from_money() {
-                                let money = Eur::create_money(20u64);
-                                let amount = Eur::create_amount(15u32);
+                                let money = eur::create_money(20u64);
+                                let amount = eur::create_amount(15u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(5u64));
-                                assert_eq!(taken, Eur::create_amount(15u32));
+                                assert_eq!(remaining, eur::create_money(5u64));
+                                assert_eq!(taken, eur::create_amount(15u32));
                         }
 
                         #[test]
                         fn take_higher_amount_from_money() {
-                                let money = Eur::create_money(15u64);
-                                let amount = Eur::create_amount(20u32);
+                                let money = eur::create_money(15u64);
+                                let amount = eur::create_amount(20u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(0u64));
-                                assert_eq!(taken, Eur::create_amount(15u32));
+                                assert_eq!(remaining, eur::create_money(0u64));
+                                assert_eq!(taken, eur::create_amount(15u32));
                         }
 
                         #[test]
                         fn money_has_larger_value_than_amount_can_represent() {
-                                let money = Eur::create_money(512u16);
-                                let amount = Eur::create_amount(128u8);
+                                let money = eur::create_money(512u16);
+                                let amount = eur::create_amount(128u8);
                                 let Taken { remaining, taken } = take(money, &amount);
 
-                                assert_eq!(remaining, Eur::create_money(512u16 - 128));
-                                assert_eq!(taken, Eur::create_amount(128u8));
+                                assert_eq!(remaining, eur::create_money(512u16 - 128));
+                                assert_eq!(taken, eur::create_amount(128u8));
                         }
                 }
                 mod money_is_a_smaller_type_than_amount {
-                        use super::super::Eur;
-                        use crate::{take, Currency, Taken};
+                        use super::super::eur;
+                        use crate::{take, Taken};
 
                         #[test]
                         fn take_full_amount_from_money() {
-                                let money = Eur::create_money(4711u64);
-                                let amount = Eur::create_amount(4711u32);
+                                let money = eur::create_money(4711u64);
+                                let amount = eur::create_amount(4711u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(0u64));
-                                assert_eq!(taken, Eur::create_amount(4711u32));
+                                assert_eq!(remaining, eur::create_money(0u64));
+                                assert_eq!(taken, eur::create_amount(4711u32));
                         }
 
                         #[test]
                         fn take_lower_amount_from_money() {
-                                let money = Eur::create_money(20u64);
-                                let amount = Eur::create_amount(15u32);
+                                let money = eur::create_money(20u64);
+                                let amount = eur::create_amount(15u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(5u64));
-                                assert_eq!(taken, Eur::create_amount(15u32));
+                                assert_eq!(remaining, eur::create_money(5u64));
+                                assert_eq!(taken, eur::create_amount(15u32));
                         }
 
                         #[test]
                         fn take_higher_amount_from_money() {
-                                let money = Eur::create_money(15u64);
-                                let amount = Eur::create_amount(20u32);
+                                let money = eur::create_money(15u64);
+                                let amount = eur::create_amount(20u32);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(0u64));
-                                assert_eq!(taken, Eur::create_amount(15u32));
+                                assert_eq!(remaining, eur::create_money(0u64));
+                                assert_eq!(taken, eur::create_amount(15u32));
                         }
 
                         #[test]
                         fn amount_has_larger_value_than_money_can_represent() {
-                                let money = Eur::create_money(255u8);
-                                let amount = Eur::create_amount(512u16);
+                                let money = eur::create_money(255u8);
+                                let amount = eur::create_amount(512u16);
                                 let Taken { remaining, taken } = take(money, &amount);
-                                assert_eq!(remaining, Eur::create_money(0u8));
-                                assert_eq!(taken, Eur::create_amount(255u16));
+                                assert_eq!(remaining, eur::create_money(0u8));
+                                assert_eq!(taken, eur::create_amount(255u16));
                         }
                 }
         }
 
         mod pay_with {
-                use super::Eur;
+                use super::eur;
 
                 costs![(Price price)];
 
                 mod money_is_same_type {
                         use super::*;
-                        use crate::{Change, Currency, PayWith};
+                        use crate::{Change, PayWith};
                         #[test]
                         fn pay_full_cost() {
-                                let money = Eur::create_money(4711u16);
-                                let cost = Eur::create_price(4711u16);
+                                let money = eur::create_money(4711u16);
+                                let cost = eur::Main::create_price(4711u16);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
-                                assert_eq!(money_back, Eur::create_money(0u16));
-                                assert_eq!(left_to_pay, Eur::create_price(0u16));
+                                assert_eq!(money_back, eur::create_money(0u16));
+                                assert_eq!(left_to_pay, eur::Main::create_price(0u16));
                         }
 
                         #[test]
                         fn pay_partial_cost() {
-                                let money = Eur::create_money(12u8);
-                                let cost = Eur::create_price(24u8);
+                                let money = eur::create_money(12u8);
+                                let cost = eur::Main::create_price(24u8);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
-                                assert_eq!(money_back, Eur::create_money(0u8));
-                                assert_eq!(left_to_pay, Eur::create_price(12u8));
+                                assert_eq!(money_back, eur::create_money(0u8));
+                                assert_eq!(left_to_pay, eur::Main::create_price(12u8));
                         }
 
                         #[test]
                         fn pay_more_than_cost() {
-                                let money = Eur::create_money(24u8);
-                                let cost = Eur::create_price(12u8);
+                                let money = eur::create_money(24u8);
+                                let cost = eur::Main::create_price(12u8);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
-                                assert_eq!(money_back, Eur::create_money(12u8));
-                                assert_eq!(left_to_pay, Eur::create_price(0u8));
+                                assert_eq!(money_back, eur::create_money(12u8));
+                                assert_eq!(left_to_pay, eur::Main::create_price(0u8));
                         }
                 }
                 mod money_is_a_smaller_type {
                         use super::*;
-                        use crate::{Change, Currency, PayWith};
+                        use crate::{Change, PayWith};
                         #[test]
                         fn pay_full_cost() {
-                                let money = Eur::create_money(128u8);
-                                let cost = Eur::create_price(128u16);
+                                let money = eur::create_money(128u8);
+                                let cost = eur::Main::create_price(128u16);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
 
-                                assert_eq!(money_back, Eur::create_money(0u8));
-                                assert_eq!(left_to_pay, Eur::create_price(0u16));
+                                assert_eq!(money_back, eur::create_money(0u8));
+                                assert_eq!(left_to_pay, eur::Main::create_price(0u16));
                         }
 
                         #[test]
                         fn pay_partial_cost() {
-                                let money = Eur::create_money(128u8);
-                                let cost = Eur::create_price(255u16);
+                                let money = eur::create_money(128u8);
+                                let cost = eur::Main::create_price(255u16);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
-                                assert_eq!(money_back, Eur::create_money(0u8));
-                                assert_eq!(left_to_pay, Eur::create_price(127u16));
+                                assert_eq!(money_back, eur::create_money(0u8));
+                                assert_eq!(left_to_pay, eur::Main::create_price(127u16));
                         }
 
                         #[test]
                         fn pay_more_than_cost() {
-                                let money = Eur::create_money(255u8);
-                                let cost = Eur::create_price(128u16);
+                                let money = eur::create_money(255u8);
+                                let cost = eur::Main::create_price(128u16);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
 
-                                assert_eq!(money_back, Eur::create_money(255u8 - 128));
-                                assert_eq!(left_to_pay, Eur::create_price(0u16));
+                                assert_eq!(money_back, eur::create_money(255u8 - 128));
+                                assert_eq!(left_to_pay, eur::Main::create_price(0u16));
                         }
                 }
                 mod money_is_a_larger_type {
                         use super::*;
-                        use crate::{Change, Currency, PayWith};
+                        use crate::{Change, PayWith};
                         #[test]
                         fn pay_full_cost() {
-                                let money = Eur::create_money(128u16);
-                                let cost = Eur::create_price(128u8);
+                                let money = eur::create_money(128u16);
+                                let cost = eur::Main::create_price(128u8);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
 
-                                assert_eq!(money_back, Eur::create_money(0u16));
-                                assert_eq!(left_to_pay, Eur::create_price(0u8));
+                                assert_eq!(money_back, eur::create_money(0u16));
+                                assert_eq!(left_to_pay, eur::Main::create_price(0u8));
                         }
 
                         #[test]
                         fn pay_partial_cost() {
-                                let money = Eur::create_money(128u16);
-                                let cost = Eur::create_price(255u8);
+                                let money = eur::create_money(128u16);
+                                let cost = eur::Main::create_price(255u8);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
-                                assert_eq!(money_back, Eur::create_money(0u16));
-                                assert_eq!(left_to_pay, Eur::create_price(127u8));
+                                assert_eq!(money_back, eur::create_money(0u16));
+                                assert_eq!(left_to_pay, eur::Main::create_price(127u8));
                         }
 
                         #[test]
                         fn pay_more_than_cost() {
-                                let money = Eur::create_money(4096u16);
-                                let cost = Eur::create_price(255u8);
+                                let money = eur::create_money(4096u16);
+                                let cost = eur::Main::create_price(255u8);
                                 let Change {
                                         money_back,
                                         left_to_pay,
                                 } = cost.pay_with(money);
 
-                                assert_eq!(money_back, Eur::create_money(4096u16 - 255));
-                                assert_eq!(left_to_pay, Eur::create_price(0u8));
+                                assert_eq!(money_back, eur::create_money(4096u16 - 255));
+                                assert_eq!(left_to_pay, eur::Main::create_price(0u8));
                         }
                 }
         }
