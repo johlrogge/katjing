@@ -52,11 +52,41 @@
 //! # fn main () {
 //! use katjing::prelude::*;
 //! currencies![(IDR Main), (EUR Cent), (KWD Mill)];
-//! let some_idr = IDR::create_money(18u8);
+//! let some_idr = IDR::Main::create_money(18u8);
 //! let some_eur = EUR::Cent::create_money(40_000u128);
 //! let some_kwd = KWD::Mill::create_money(64_000u32);
 //! # }
 //! ```
+//! Of course you can only create the subunits that are declared
+//! ```compile_fail
+//! # #[macro_use] extern crate katjing;
+//! # fn main () {
+//! # use katjing::prelude::*;
+//! # currencies![(IDR Main)];
+//! let some_idr = IDR::Cent::create_money(18u8);
+//! # }
+//! ```
+//! *You cannot create cents for a currency with only main unit.*
+//!
+//! ```compile_fail
+//! # #[macro_use] extern crate katjing;
+//! # fn main () {
+//! # use katjing::prelude::*;
+//! # currencies![(EUR Cent)];
+//! let some_eur = EUR::Mill::create_money(18u8);
+//! # }
+//! ```
+//! *You cannot create mills for a currency with cents.*
+//!
+//! ```compile_fail
+//! # #[macro_use] extern crate katjing;
+//! # fn main () {
+//! # use katjing::prelude::*;
+//! # currencies![(KWD Mill)];
+//! let some_kwd = KWD::Cent::create_money(18u8);
+//! # }
+//! ```
+//! *You cannot create cents for a currency with mills.*
 //!
 //! But what good is wealth if you can't spend it on anything?
 //!
