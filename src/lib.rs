@@ -293,22 +293,18 @@ where
 /// Trait wrapping amounts. Used for implementing amount specializations like [Cost]
 ///
 /// [Cost]: trait.Cost.html
-pub trait WrappedAmount<AV>
-where
-        AV: AmountValue,
-{
+pub trait WrappedAmount {
+        type AV: AmountValue;
         type C: Currency;
-        fn amount<'a>(&'a self) -> &'a Amount<AV, Self::C>;
+        fn amount<'a>(&'a self) -> &'a Amount<Self::AV, Self::C>;
 }
 
 /// Represents a cost that can be payed
-pub trait Cost<AV>
+pub trait Cost
 where
-        Self: WrappedAmount<AV>,
-        AV: AmountValue,
+    Self: WrappedAmount,
 {
-        type C: Currency;
-        fn new(amount: AV) -> Self;
+        fn new(amount: Self::AV) -> Self;
 }
 
 /// Defines costs. You should declare different costs that are relevant such as *shipping*, *price*, or *tax*.
@@ -331,24 +327,24 @@ macro_rules! costs {
                         }
                 }
 
-                impl<AV, CC> $crate::WrappedAmount<AV> for $c<AV, CC>
+                impl<AVV, CC> $crate::WrappedAmount for $c<AVV, CC>
                 where
-                   AV: $crate::AmountValue,
+                   AVV: $crate::AmountValue,
                    CC: $crate::Currency,
             {
+                    type AV = AVV;
                     type C = CC;
-                        fn amount(&self) -> &$crate::Amount<AV, Self::C> {
+                        fn amount(&self) -> &$crate::Amount<Self::AV, Self::C> {
                                 &self.0
                         }
                 }
 
-                impl<AV, CC> $crate::Cost<AV> for $c<AV, CC>
+                impl<AVV, CC> $crate::Cost for $c<AVV, CC>
                 where
-                   AV: $crate::AmountValue,
+                   AVV: $crate::AmountValue,
                    CC: $crate::Currency,
             {
-                    type C = CC;
-                        fn new(amount: AV) -> Self {
+                        fn new(amount: Self::AV) -> Self {
                                 $c(CC::create_amount(amount))
                         }
                 }
@@ -382,7 +378,7 @@ macro_rules! costs {
 /// The result of a [Take] operation
 ///
 /// [Take]: trait.Take.html
-pub struct Taken<MV, AV, C>
+struct Taken<MV, AV, C>
 where
         MV: AmountValue,
         AV: AmountValue,
@@ -399,7 +395,7 @@ where
 ///
 /// [Amount]: struct.Amount.html
 /// [Money]: struct.Money.html
-pub fn take<MV, AV, C>(from: Money<MV, C>, amount: &Amount<AV, C>) -> Taken<MV, AV, C>
+fn take<MV, AV, C>(from: Money<MV, C>, amount: &Amount<AV, C>) -> Taken<MV, AV, C>
 where
         C: Currency,
         AV: AmountValue + TryInto<MV> + TryFrom<MV>,
@@ -449,28 +445,28 @@ where
 }
 
 /// Implement for payable things such as amounts
-pub trait PayWith<MV, AV>
+pub trait PayWith<MV>
 where
         Self: Sized,
         MV: AmountValue,
-        AV: AmountValue,
 {
-        type C: Currency;
+    type C: Currency;
+
         /// consumes `with_money` and returns remaining money and left to pay after with_money has been
         /// deducted.
         #[must_use = "pay_with returns Change, it must be assigned"]
         fn pay_with(self, with_money: Money<MV, Self::C>) -> Change<Money<MV, Self::C>, Self>;
 }
 
-impl<CO, MV, AV> PayWith<MV, AV> for CO
+impl<CO, MV> PayWith<MV> for CO
 where
-        Self: Cost<AV>,
-        AV: AmountValue + TryInto<MV> + TryFrom<MV>,
-        MV: AmountValue + TryInto<AV>,
-        <AV as std::convert::TryFrom<MV>>::Error: Debug,
-        <AV as std::convert::TryInto<MV>>::Error: Debug,
+        Self: Cost,
+        <Self as WrappedAmount>::AV: AmountValue + TryInto<MV> + TryFrom<MV>,
+        MV: AmountValue + TryInto<<Self as WrappedAmount>::AV>,
+        <<Self as WrappedAmount>::AV as std::convert::TryFrom<MV>>::Error: Debug,
+        <<Self as WrappedAmount>::AV as std::convert::TryInto<MV>>::Error: Debug,
 {
-        type C = <Self as WrappedAmount<AV>>::C;
+    type C = <Self as WrappedAmount>::C;
         fn pay_with(self, with_money: Money<MV, Self::C>) -> Change<Money<MV, Self::C>, Self> {
                 let Taken { remaining, taken } = take(with_money, self.amount());
                 let left_to_pay = Self::new(
