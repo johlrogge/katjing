@@ -53,7 +53,7 @@
 //! use katjing::prelude::*;
 //! currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! let some_idr = IDR::Main::create_money(18u8);
-//! let some_eur = EUR::Cent::create_money(40_000u128);
+//! let some_eur = EUR::Cent::create_money(400_00u128);
 //! let some_kwd = KWD::Mill::create_money(64_000u32);
 //! # }
 //! ```
@@ -62,7 +62,7 @@
 //! # #[macro_use] extern crate katjing;
 //! # fn main () {
 //! # use katjing::prelude::*;
-//! # currencies![(IDR Main)];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! let some_idr = IDR::Cent::create_money(18u8);
 //! # }
 //! ```
@@ -72,7 +72,7 @@
 //! # #[macro_use] extern crate katjing;
 //! # fn main () {
 //! # use katjing::prelude::*;
-//! # currencies![(EUR Cent)];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! let some_eur = EUR::Mill::create_money(18u8);
 //! # }
 //! ```
@@ -82,7 +82,7 @@
 //! # #[macro_use] extern crate katjing;
 //! # fn main () {
 //! # use katjing::prelude::*;
-//! # currencies![(KWD Mill)];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! let some_kwd = KWD::Cent::create_money(18u8);
 //! # }
 //! ```
@@ -100,13 +100,13 @@
 //! ```
 //! # #[macro_use] extern crate katjing;
 //! use katjing::prelude::*;
-//! # currencies![(EUR Cent), (SEK Cent), (USD Cent)];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! costs![(Shipping shipping), (Price price)];
 //! fn main () {
 //!   let shipping_eur = EUR::Main::create_shipping(1u8);
-//!   let shipping_usd = USD::Main::create_shipping(2u8);
+//!   let shipping_idr = IDR::Main::create_shipping(2u8);
 //!   let price_eur = EUR::Main::create_price(100u16);
-//!   let price_usd = USD::Main::create_price(128u16);
+//!   let price_idr = IDR::Main::create_price(128u16);
 //! }
 //! ```
 //!
@@ -121,10 +121,10 @@
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
 //! # use katjing::prelude::*;
-//! # currencies![EUR, SEK, USD];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! # costs![(Shipping shipping), (Price price)];
 //! # fn main () {
-//!     let shipping_eur:Shipping<u8, USD> = EUR::create_shipping(1u8);
+//!     let shipping_eur:Shipping<u8, IDR::Main> = EUR::Main::create_shipping(1u8);
 //! # }
 //! ```
 //! *You cannot assign a cost to a cost different currency.*
@@ -132,10 +132,10 @@
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
 //! # use katjing::prelude::*;
-//! # currencies![EUR, SEK, USD];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! # costs![(Shipping shipping), (Price price)];
 //! # fn main () {
-//!     let shipping_eur:Shipping<u8, EUR> = EUR::create_price(1u8);
+//!     let shipping_eur:Shipping<u8, EUR::Main> = EUR::Main::create_price(1u8);
 //! # }
 //! ```
 //! *You cannot assign a cost to a cost of a different type.*
@@ -143,9 +143,9 @@
 //! ```compile_fail
 //! # #[macro_use] extern crate katjing;
 //! # use katjing::prelude::*;
-//! # currencies![EUR, SEK, USD];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! # fn main () {
-//!     let money_usd:Money<u8, USD> = EUR::create_money(1u8);
+//!     let money_usd:Money<u8, IDR::Main> = EUR::create_money(1u8);
 //! # }
 //! ```
 //! *You cannot assign money to money of a different currency.*
@@ -153,7 +153,7 @@
 //! ```
 //! # #[macro_use] extern crate katjing;
 //! # use katjing::prelude::*;
-//! # currencies![(EUR Cent), (SEK Cent), (USD Cent)];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! # fn main () {
 //!     EUR::create_money(1u8);
 //! # }
@@ -169,7 +169,7 @@
 //! use katjing::prelude::*;
 //! // define costs and currencies
 //! # costs![(Price price), (Shipping shipping)];
-//! # currencies![(EUR Cent), (USD Cent)];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! # fn main() {
 //! let shipping = EUR::Main::create_shipping(12u8);
 //! let money = EUR::Main::create_money(1_000u16);
@@ -192,11 +192,11 @@
 //! # #[macro_use] extern crate katjing;
 //! # use katjing::prelude::*;
 //! # costs![(Price price), (Shipping shipping)];
-//! # currencies![EUR, USD];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! # fn main() {
-//! let shipping = EUR::create_shipping(12u8);
-//! let price = EUR::create_price(1_000u16);
-//! let money = EUR::create_money(1_012u16);
+//! let shipping = EUR::Main::create_shipping(12u8);
+//! let price = EUR::Main::create_price(1_000u16);
+//! let money = EUR::Main::create_money(1_014u16);
 //!
 //! let Change{ money_back, left_to_pay } = price.pay_with(money);
 //! let Change{ money_back, left_to_pay } = shipping.pay_with(money); // <- fails: money has already been used to pay price with
@@ -210,12 +210,15 @@
 //! # #[macro_use] extern crate katjing;
 //! # use katjing::prelude::*;
 //! # costs![(Price price), (Shipping shipping)];
-//! # currencies![(EUR Cent), (USD Cent)];
+//! # currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! # fn main() {
 //! let shipping = EUR::Main::create_shipping(12u8);
 //! let price = EUR::Main::create_price(1_000u16);
 //! let money = EUR::Main::create_money(1_014u16);
 //!
+//! // Note below how we destructure `money_back` to `money`.
+//! // This makes our second payment use the `money_back` from the first payment.
+//! // That way we are not trying to use the moved initially created `money` twice
 //! let Change{ money_back:money, left_to_pay:price } = price.pay_with(money);
 //! let Change{ money_back:money, left_to_pay:shipping } = shipping.pay_with(money);
 //!
