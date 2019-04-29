@@ -53,8 +53,8 @@
 //! use katjing::prelude::*;
 //! currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 //! let some_idr = IDR::Main::create_money(18u8);
-//! let some_eur = EUR::Cent::create_money(400_00u128);
-//! let some_kwd = KWD::Mill::create_money(64_000u32);
+//! let some_eur = EUR::Cent::create_money(40_032u128);
+//! let some_kwd = KWD::Mill::create_money(64_186u32);
 //! # }
 //! ```
 //! Of course you can only create the subunits that are declared
