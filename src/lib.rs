@@ -219,8 +219,8 @@
 //! // Note below how we destructure `money_back` to `money`.
 //! // This makes our second payment use the `money_back` from the first payment.
 //! // That way we are not trying to use the moved initially created `money` twice
-//! let Change{ money_back:money, left_to_pay:price } = price.pay_with(money);
-//! let Change{ money_back:money, left_to_pay:shipping } = shipping.pay_with(money);
+//! let Change{ money_back: money, left_to_pay: price } = price.pay_with(money);
+//! let Change{ money_back: money, left_to_pay: shipping } = shipping.pay_with(money);
 //!
 //! assert_eq!( money, EUR::create_money(2u16));
 //! assert_eq!( price, EUR::Main::create_price(0u16));
