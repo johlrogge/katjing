@@ -3,6 +3,7 @@ image: "rust:latest"
 cache:
   paths:
     - target/
+    - public/
     - .cargo
 
 before_script:
@@ -11,6 +12,7 @@ before_script:
 stages:
   - build
   - test
+  - doc
   - deploy
 
 cargo:build:
@@ -24,14 +26,23 @@ cargo:test:
   stage: test
   script:
   - cargo test --all
+
+cargo:doc:
+  stage: doc
+  script:
+  - cargo doc
+  - cp -r target/doc public/doc
+
+cargo:mdbook:
+  stage: doc
+  script:
+  - cargo install mdbook
+  - mdbook build book --d public/book 
   
 pages:
   stage: deploy
   script:
-  - cargo doc
-  - mkdir .public
-  - cp -r target/doc .public/doc
-  - mv .public public
+  - echo publishing pages
   artifacts:
     paths:
       - public
