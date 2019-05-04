@@ -24,7 +24,7 @@ For example:
 # #[macro_use] extern crate katjing;
 # fn main () {
 use katjing::prelude::*;
-currencies![(IDR Main), (EUR Cent), (KWD Mill)];rust
+currencies![(IDR Main), (EUR Cent), (KWD Mill)];
 let some_idr = IDR::create_money(18u8);
 let some_eur = EUR::create_money(40_000u128);
 let some_kwd = KWD::create_money(64_000u32);
