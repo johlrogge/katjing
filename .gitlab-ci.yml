@@ -5,6 +5,7 @@ cache:
     - target/
     - public/
     - .cargo
+    - .public
 
 before_script:
   - export CARGO_HOME=.cargo
@@ -31,18 +32,20 @@ cargo:doc:
   stage: doc
   script:
   - cargo doc
-  - cp -r target/doc public/doc
+  - mkdir .public
+  - cp -r target/doc .public/doc
 
 cargo:mdbook:
   stage: doc
   script:
+  - mkdir .public
   - cargo install mdbook
-  - mdbook build book --d public/book 
+  - .cargo/bin/mdbook build book -d .public/book 
   
 pages:
   stage: deploy
   script:
-  - echo publishing pages
+  - cp -r .public public
   artifacts:
     paths:
       - public
