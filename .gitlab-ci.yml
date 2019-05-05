@@ -31,7 +31,7 @@ cargo:doc:
   script:
   - cargo doc
   - mkdir -p public/doc
-  - cp -r target/doc public/doc
+  - cp -r target/doc/ public/
   artifacts:
     paths:
       - public/doc
@@ -41,7 +41,7 @@ cargo:mdbook:
   script:
   - mkdir -p public/book
   - cargo install --force mdbook 
-  - .cargo/bin/mdbook build book -d public/book
+  - .cargo/bin/mdbook build book -d ../public/book
   artifacts:
     paths:
       - public/book
