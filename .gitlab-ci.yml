@@ -44,7 +44,7 @@ cargo:mdbook:
   - .cargo/bin/mdbook build book -d public/book
   artifacts:
     paths:
-      -public/book
+      - public/book
   
 pages:
   stage: deploy
