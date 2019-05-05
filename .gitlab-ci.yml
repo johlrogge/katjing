@@ -3,9 +3,7 @@ image: "rust:latest"
 cache:
   paths:
     - target/
-    - public/
     - .cargo
-    - .public
 
 before_script:
   - export CARGO_HOME=.cargo
@@ -32,20 +30,26 @@ cargo:doc:
   stage: doc
   script:
   - cargo doc
-  - mkdir .public
-  - cp -r target/doc .public/doc
-
+  - mkdir -p public/doc
+  - cp -r target/doc public/doc
+  artifacts:
+    paths:
+      - public/doc
+      
 cargo:mdbook:
   stage: doc
   script:
-  - mkdir .public
+  - mkdir -p public/book
   - cargo install mdbook
-  - .cargo/bin/mdbook build book -d .public/book 
+  - .cargo/bin/mdbook build book -d public/book
+  artifacts:
+    paths:
+      -public/book
   
 pages:
   stage: deploy
   script:
-  - cp -r .public public
+  - ls -R public | wc
   artifacts:
     paths:
       - public
