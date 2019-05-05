@@ -1,6 +1,6 @@
 # A tour of Katjing
 
- ## Currencies
+## Currencies
  Katjing treats currencies as separate types. That means you cannot mix amounts of different currencies.
  Let's define some currencies and create some money:
 
@@ -14,34 +14,32 @@ let some_eur = EUR::create_money(40_000u128);
 let some_kwd = KWD::create_money(64_000u32);
 # }
 ```
- As you can see you can create money of different types, and you create them from a currency.
- The currency is just phantomdata and is only relevant during compile time and allows rust to
- make sure that you don't do nonsensical things by mistake [^adding]
+As you can see you can create money of different types, and you create them from a currency. The currency is just phantomdata and is only relevant during compile time and allows rust to make sure that you don't do nonsensical things by mistake [^adding]
+When you specify a currency with the `currencies!` macro you also specify the minimal representable unit of the currency.
 
- When you specify a currency with the `currencies!` macro you also specify the minimal representable unit of the currency.
- The minimal representable unit can be
- <dl>
- <dt>Main</dt><dd>Has no subunit as is the case with the Indonesian Rupiah <em>IDR</em> in the example</dd>
- <dt>Cent</dt><dd>Subunit is 1/100 of the main unit. This is the most common subunit type used</dd>
- <dt>Mill</dt><dd>Subunit is 1/1000 of the main unit as is the case with the Kuwaiti Dinar <em>KWD</em> used in the example</dd>
- </dl>
+The minimal representable unit can be:
+<dl>
+<dt>Main</dt><dd>Has no subunit as is the case with the Indonesian Rupiah <em>IDR</em> in the example</dd>
+<dt>Cent</dt><dd>Subunit is 1/100 of the main unit. This is the most common subunit type used</dd>
+<dt>Mill</dt><dd>Subunit is 1/1000 of the main unit as is the case with the Kuwaiti Dinar <em>KWD</em> used in the example</dd>
+</dl>
 
- The subunit is abstract and is not concerned with the actual names of the subunits. For instance: SEK would declare
- `Cent` even though the actual name of the subunit is *öre*.
+The subunit is abstract and is not concerned with the actual names of the subunits. For instance: SEK would declare `Cent` even though the actual name of the subunit is *öre*.
 
 ## Units
- In the above examples we have created amounts from the main unit. But what if we want to use those cents and mills?
+In the above examples we have created amounts from the main unit. But what if we want to use those cents and mills?
 
 ```rust
 # #[macro_use] extern crate katjing;
 # fn main () {
-use katjing::prelude::*;
-currencies![(idr Main), (eur Cent), (kwd Mill)];
-let _some_idr = idr::Main::create_money(18u8);
-let _some_eur = eur::Cent::create_money(40_032u128);
-let _some_kwd = kwd::Mill::create_money(64_186u32);
+	use katjing::prelude::*;
+	currencies![(idr Main), (eur Cent), (kwd Mill)];
+	let _some_idr = idr::Main::create_money(18u8);
+	let _some_eur = eur::Cent::create_money(40_032u128);
+	let _some_kwd = kwd::Mill::create_money(64_186u32);
 # }
 ```
+
 Of course you can only create the subunits that are declared
 ```rust,ignore
 # #[macro_use] extern crate katjing;
@@ -75,8 +73,7 @@ let some_kwd = KWD::Cent::create_money(18u8);
 
 But what good is wealth if you can't spend it on anything?
 
-[^adding]: like adding 2 SEK to 10 USD, Then you would just have 2 SEK and 10 USD unless you BUY
-           USD for your SEK which is a different operation entirely)
+[^adding]: like adding 2 SEK to 10 USD, Then you would just have 2 SEK and 10 USD unless you BUY USD for your SEK which is a different operation entirely)
 
 ## Costs
 Just like currencies katjing allows you to define costs. A cost is something that can be covered (payed), like
@@ -96,7 +93,8 @@ fn main () {
 As you may notice you can choose *storage type* for your costs and your money. You may not expect shipping in € to be a very large amount
 so you may choose a small type to represent shipping while you would choose something bigger to represent national debt.
 You may also notice that all values are unsigned. This is also by design. Negative money does not exist, that is only for calculation. Katjing uses types instead of signs as we will see.
-Lastly, costs and money are created from a currency. **You cannot mix currencies**
+Lastly, costs and money are created from a currency. **You cannot mix currencies!**
+
 From now on we will assume the above costs and currencies are defined.
 
 As mentioned initially Katjing tries to prevent as many errors as possible at compile time. Here are a few examples we can demonstrate with what we know:
