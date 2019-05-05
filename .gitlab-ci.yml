@@ -55,3 +55,6 @@ pages:
       - public
   only:
     - master
+  dependencies:
+    - cargo:doc
+    - cargo:book
