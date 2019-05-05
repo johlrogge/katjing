@@ -40,7 +40,7 @@ cargo:mdbook:
   stage: doc
   script:
   - mkdir -p public/book
-  - cargo install mdbook
+  - cargo install --force mdbook 
   - .cargo/bin/mdbook build book -d public/book
   artifacts:
     paths:
