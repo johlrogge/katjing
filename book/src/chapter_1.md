@@ -1,5 +1,4 @@
 # A tour of Katjing
-
 ## Currencies
  Katjing treats currencies as separate types. That means you cannot mix amounts of different currencies.
  Let's define some currencies and create some money:
