@@ -51,11 +51,10 @@ impl<C: Currency> Display for Money<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}.{:02} {}",
+            "{0} {1}.{2:02}",
+            C::ALPHABETIC_CODE, 
             self.minor_unit / (C::MINOR_UNIT as u128),
-            self.minor_unit % (C::MINOR_UNIT as u128),
-            C::ALPHABETIC_CODE
-        )
+            self.minor_unit % (C::MINOR_UNIT as u128))
     }
 }
 
@@ -66,13 +65,13 @@ mod display {
     #[test]
     fn shows_value() {
         let one_sek = Money::<SEK>::new(1);
-        assert_eq!(format!("{}", one_sek), "1.00 SEK")
+        assert_eq!(format!("{}", one_sek), "SEK 1.00")
     }
 
     #[test]
     fn shows_minor_unit() {
         let one_thirtythree_sek = Money::<SEK>::in_minor_unit(133);
-        assert_eq!(format!("{}", one_thirtythree_sek), "1.33 SEK");
+        assert_eq!(format!("{}", one_thirtythree_sek), "SEK 1.33");
     }
 }
 
