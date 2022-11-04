@@ -1,11 +1,11 @@
 use std::{marker::PhantomData};
 use crate::Currency;
 use thiserror::Error;
-use crate::Cents;
+use crate::MinorUnit;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Price<C: Currency> {
-    cents: Cents,
+    minor_unit: MinorUnit,
     currency: PhantomData<C>,
 }
 
@@ -20,20 +20,20 @@ pub enum PaymentError<C:Currency> {
 
 impl <C:Currency> PartialEq<Money<C>> for Price<C> {
     fn eq(&self, other: &Money<C>) -> bool {
-        self.cents == other.cents
+        self.minor_unit == other.minor_unit
     }
 }
 
 impl <C:Currency> PartialOrd<Money<C>> for Price<C> {
     fn partial_cmp(&self, other: &Money<C>) -> Option<std::cmp::Ordering> {
-        self.cents.partial_cmp(&other.cents)
+        self.minor_unit.partial_cmp(&other.minor_unit)
     }
 }
 
 impl<C:Currency> Price<C> {
-    pub fn new(amount:Cents) -> Self {
+    pub fn new(amount:MinorUnit) -> Self {
         Price{
-            cents:amount*100,
+            minor_unit:amount*100,
             currency:PhantomData,
         }
     }
@@ -43,15 +43,15 @@ use crate::Money;
 impl<C:Currency> Money<C> {
     pub fn pay(mut self:Self, mut price:Price<C>) -> (Self, Price<C>) {
         if price > self {
-            let cents = self.cents;
-            self.cents = 0;
-            price.cents = price.cents - cents;
+            let minor_unit = self.minor_unit;
+            self.minor_unit = 0;
+            price.minor_unit = price.minor_unit - minor_unit;
             (self, price)    
         }
         else {
-            let cents = price.cents;
-            price.cents = 0;
-            self.cents = self.cents - cents;
+            let minor_unit = price.minor_unit;
+            price.minor_unit = 0;
+            self.minor_unit = self.minor_unit - minor_unit;
             (self, price)
         }
     }

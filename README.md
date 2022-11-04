@@ -44,7 +44,7 @@ use {
   }
 };
 let one_sek=Money::<SEK>::new(1);
-let one_sek_again=Money::<SEK>::in_cents(100);
+let one_sek_again=Money::<SEK>::in_minor_unit(100);
 assert_eq!(one_sek, one_sek_again);
 ```
 

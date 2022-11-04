@@ -1,10 +1,10 @@
 use std::{fmt::Display, marker::PhantomData};
 use crate::currency::Currency;
-use crate::Cents;
+use crate::MinorUnit;
 
 #[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Money<C: Currency> {
-    pub(crate) cents: Cents,
+    pub(crate) minor_unit: MinorUnit,
     currency: PhantomData<C>,
 }
 
@@ -27,21 +27,21 @@ impl<C: Currency> Money<C> {
     /// let one_euro = Money::<EUR>::new(1);
     /// let euro:Money<SEK> = one_euro;
     /// ```
-    pub fn new(value: Cents) -> Money<C> {
-        Self::in_cents(value * 100)
+    pub fn new(value: MinorUnit) -> Money<C> {
+        Self::in_minor_unit(value * 100)
     }
     /// If you want to create money with it's fractional representation
-    /// you use *in cents*
+    /// you use *in_minor_unit*
     /// ```
     /// # use katjing::Money;
     /// # use katjing::test::EUR;
     /// let one_euro = Money::<EUR>::new(1);
-    /// let another_one_euro = Money::<EUR>::in_cents(100);
+    /// let another_one_euro = Money::<EUR>::in_minor_unit(100);
     /// assert_eq!(one_euro, another_one_euro);
     /// ```
-    pub fn in_cents(cents: Cents) -> Money<C> {
+    pub fn in_minor_unit(minor_unit: MinorUnit) -> Money<C> {
         Money {
-            cents,
+            minor_unit,
             currency: PhantomData,
         }
     }
@@ -52,8 +52,8 @@ impl<C: Currency> Display for Money<C> {
         write!(
             f,
             "{}.{:02} {}",
-            self.cents / (C::MINOR_UNIT as u128),
-            self.cents % (C::MINOR_UNIT as u128),
+            self.minor_unit / (C::MINOR_UNIT as u128),
+            self.minor_unit % (C::MINOR_UNIT as u128),
             C::ALPHABETIC_CODE
         )
     }
@@ -70,8 +70,8 @@ mod display {
     }
 
     #[test]
-    fn shows_cents() {
-        let one_thirtythree_sek = Money::<SEK>::in_cents(133);
+    fn shows_minor_unit() {
+        let one_thirtythree_sek = Money::<SEK>::in_minor_unit(133);
         assert_eq!(format!("{}", one_thirtythree_sek), "1.33 SEK");
     }
 }
@@ -96,8 +96,8 @@ mod compare {
 
     #[test]
     fn one_thirty_gt_one_thirtyone() {
-        let sek_1_30 = Money::<SEK>::in_cents(130);
-        let sek_1_31 = Money::<SEK>::in_cents(131);
+        let sek_1_30 = Money::<SEK>::in_minor_unit(130);
+        let sek_1_31 = Money::<SEK>::in_minor_unit(131);
         assert!(sek_1_31 > sek_1_30);
     }
 }

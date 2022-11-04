@@ -6,7 +6,7 @@ pub use crate::price::Price;
 pub use crate::money::Money;
 
 pub use crate::currency::Currency;
-pub type Cents = u128;
+pub type MinorUnit= u128;
 
 
 #[cfg(doctest)]
