@@ -36,7 +36,7 @@ cargo:doc:
     paths:
       - public/doc
       
-cargo:mdbook:
+.cargo:mdbook:
   stage: doc
   script:
   - mkdir -p public/book
