@@ -52,9 +52,9 @@ impl<C: Currency> Display for Money<C> {
         write!(
             f,
             "{0} {1}.{2:02}",
-            C::ALPHABETIC_CODE, 
-            self.minor_unit / (C::MINOR_UNIT as u128),
-            self.minor_unit % (C::MINOR_UNIT as u128))
+            C::ALPHABETIC_CODE.code(), 
+            self.minor_unit / (C::minor_unit() as u128),
+            self.minor_unit % (C::minor_unit() as u128))
     }
 }
 

@@ -1,6 +1,8 @@
 pub trait Currency: std::fmt::Debug {
-    const ALPHABETIC_CODE:&'static str;
-    const MINOR_UNIT:u8;
+    const ALPHABETIC_CODE: ::iso_currency::Currency;
+    fn minor_unit() -> u16 {
+        Self::ALPHABETIC_CODE.subunit_fraction().unwrap_or_else(||1)
+    }
 }
 
 #[macro_export]
@@ -9,8 +11,7 @@ macro_rules! create_currency {
         #[derive(Debug, PartialEq, PartialOrd)]
         pub struct $name();
         impl $crate::Currency for $name {
-            const ALPHABETIC_CODE:&'static str = stringify!($name);
-            const MINOR_UNIT:u8 = 10u8.pow($minor_unit_decimals);
+            const ALPHABETIC_CODE: ::iso_currency::Currency = ::iso_currency::Currency::$name;
         }
     )
 }
