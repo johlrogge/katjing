@@ -1,10 +1,16 @@
 [package]
 name = "katjing"
 version = "0.1.0"
-authors = ["johlrogge <joakim.x230@agical.se>"]
+description = "A money library exploring the aplicability of Rusts unique language features for safe money management."
+authors = ["johlrogge <joakim.ohlrogge@agical.se>"]
+homepage = "https://gitlab.com/johlrogge.rs/crates/katjing/-/blob/master/README.md"
+repository = "https://gitlab.com/johlrogge.rs/crates/katjing/"
+readme = "README.md"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+keywords = ["money", "finance"]
+categories = ["data-structures"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 thiserror = "1.0"
 iso_currency = "0.4.3"
